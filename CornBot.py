@@ -4,7 +4,6 @@ import requests
 import os
 import json
 import math
-import asyncio
 from prettytable import PrettyTable
 import aiohttp
 import random
@@ -56,17 +55,48 @@ def round_sig(x, sigdig=2):
     n = math.floor(math.log10(abs(x))) + 1
     return round(x, sigdig - n)
 
-def check_coin(coin):
+# def check_coin(coin):
+#     coin = coin.lower()
+#     with open('coins.json', 'r', encoding='utf-8') as f:
+#         data = json.load(f)
+#     for line in data:
+#         if line['symbol'] == coin or line['name']== coin:
+#              return line['id']
+#         if line['id'] == coin:
+#             return coin
+#     else:
+#         return False
+    
+async def check_coin(coin):
     coin = coin.lower()
+    matching_ids = []
     with open('coins.json', 'r', encoding='utf-8') as f:
         data = json.load(f)
     for line in data:
-        if line['symbol'] == coin or line['name']== coin:
-             return line['id']
-        if line['id'] == coin:
-            return coin
-    else:
+        if line['symbol'].lower() == coin or line['name'].lower() == coin or line['id'].lower() == coin:
+            matching_ids.append(line['id'])
+    if matching_ids:
+        if len(matching_ids) == 1:
+            return matching_ids[0]
+        else:
+            return await get_coin_with_lowest_market_cap_rank(matching_ids)
+    else: 
         return False
+
+async def get_coin_with_lowest_market_cap_rank(coin_ids):
+    async with aiohttp.ClientSession() as session:
+        lowest_rank_id = None
+        lowest_rank = float('inf')
+        for coin_id in coin_ids:
+            async with session.get(f'https://api.coingecko.com/api/v3/coins/{coin_id}') as response:
+                coin_data = await response.json()
+                if 'market_cap_rank' in coin_data and coin_data['market_cap_rank'] is not None:
+                    if coin_data['market_cap_rank'] < lowest_rank:
+                        lowest_rank = coin_data['market_cap_rank']
+                        lowest_rank_id = coin_id
+        return lowest_rank_id
+
+    
 def format(price):
     if price > 100:
         price = f'{int(price):,}' 
@@ -82,7 +112,7 @@ async def price(ctx, coin: str):
     await ctx.defer()
 
     # Check the coin
-    coin_id = check_coin(coin)
+    coin_id = await check_coin(coin)
     if not coin_id:
         # If the coin is not valid, send an error message
         await ctx.edit(content=f"Could not find a coin with the ID '{coin}'")
@@ -137,7 +167,7 @@ async def add(ctx, coins: str):
     # Add the coins to the favorites
     added_coins = []
     for coin in coins:
-        coin_id = check_coin(coin)
+        coin_id = await check_coin(coin)
         if coin_id and coin_id not in favorites[user_id]:
             favorites[user_id].append(coin_id)
             added_coins.append(coin)
@@ -301,7 +331,7 @@ async def remove(ctx, coins: str):
         # Remove the coins from the favorites
         removed_coins = []
         for coin in coins:
-            coin_id = check_coin(coin)
+            coin_id = await check_coin(coin)
             if coin_id and coin_id in favorites[user_id]:
                 favorites[user_id].remove(coin_id)
                 removed_coins.append(coin)
