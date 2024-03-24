@@ -2,8 +2,51 @@ import discord
 from discord.ext import commands, tasks
 import requests
 import os
+import json
 
 GECKO_API = os.environ.get("GECKO_API")
+
+
+intents = discord.Intents.default()  # Create a new Intents object with default settings
+intents.message_content = True
+bot = commands.Bot(command_prefix='!', intents=intents)  # Pass the Intents object to the Bot
+
+def check_coin(coin):
+    coin = coin.lower()
+    with open('coins.json', 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    for line in data:
+        if line['symbol'] == coin or line['name'] == coin:
+            print(1)
+        if line['symbol'] == coin:
+             return line['id']
+        if line['name']== coin:
+            return coin
+    else:
+        return False
+
+
+@bot.command()
+async def price(ctx,coin: str):
+    coin = check_coin(coin)
+    if coin == False:
+        await ctx.send(f"Could not find a coin with the ID '{coin}'")
+    else:
+        url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true&precision=full"
+        headers = {"x-cg-demo-api-key": GECKO_API}
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        if coin in data:
+            price = data[coin]['usd']
+            change = round(data[coin]['usd_24h_change'],1)
+            cap = int(data[coin]['usd_market_cap'])
+            if change >= 0:
+                await ctx.send(f"The price of {coin} is ${int(price):,} (↗{change}%). Market Cap: ${cap:,}")
+            else:
+                await ctx.send(f"The price of {coin} is ${int(price):,} (↘{change}%). Market Cap: ${cap:,}")
+        else:
+            await ctx.send(f"Could not find a coin with the ID '{coin}'")
 
 def get_bitcoin_price():
     global count
@@ -26,8 +69,6 @@ def get_bitcoin_price():
 
     return (f'{int(price):,}' , change)
 
-intents = discord.Intents.default()  # Create a new Intents object with default settings
-bot = commands.Bot(command_prefix='!', intents=intents)  # Pass the Intents object to the Bot
 
 @bot.event
 async def on_ready():
