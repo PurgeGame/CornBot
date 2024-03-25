@@ -7,6 +7,9 @@ import math
 from prettytable import PrettyTable
 import aiohttp
 import random
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 GECKO_API = os.environ.get("GECKO_API")
