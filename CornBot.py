@@ -20,10 +20,6 @@ change_btc = None
 
 
 
-
-
-
-
 async def get_prices(coins):
     # Convert the list of coins to a comma-separated string
     coins_str = ','.join(coins)
@@ -55,17 +51,6 @@ def round_sig(x, sigdig=2):
     n = math.floor(math.log10(abs(x))) + 1
     return round(x, sigdig - n)
 
-# def check_coin(coin):
-#     coin = coin.lower()
-#     with open('coins.json', 'r', encoding='utf-8') as f:
-#         data = json.load(f)
-#     for line in data:
-#         if line['symbol'] == coin or line['name']== coin:
-#              return line['id']
-#         if line['id'] == coin:
-#             return coin
-#     else:
-#         return False
     
 async def check_coin(coin):
     coin = coin.lower()
