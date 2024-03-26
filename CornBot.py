@@ -116,8 +116,11 @@ async def price(ctx, coin: str):
         price = price_data['current_price']
         change = round(price_data['price_change_percentage_24h'],1)
         cap = int(price_data['market_cap'])
-        if cap == 0:
-            cap = int(price_data['fully_diluted_valuation'])
+        if cap == 0: 
+            if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
+                cap = int(data['fully_diluted_valuation'])
+            else:
+                cap = 'N/A'
         mc_rank = price_data['market_cap_rank']
         if mc_rank is None:
             mc_rank = 'N/A'
@@ -182,19 +185,29 @@ async def add(ctx, coins: str):
         # Edit the response to send the actual content
         await ctx.edit(content="None of the coins you provided were added. They might already be in your favorites or they are not valid.")
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
 def format_number(num):
-    if num is None:
+
+    if num is None or not is_number(num):
         return 'N/A'
-    elif num >= 1e7:
-        return f'{num/1e6:,.0f} M'
-    elif num >= 1e3:
-        return f'{round(num):,}'
-    elif num == 0:
-        return 'N/A'
-    elif num < 0.01:
-        return f'{num:.2e}'  # use scientific notation for very small numbers
     else:
-        return f'{num:.2f}'
+        num = float(num)
+        if num >= 1e7:
+            return f'{num/1e6:,.0f} M'
+        elif num >= 1e3:
+            return f'{round(num):,}'
+        elif num == 0:
+            return 'N/A'
+        elif num < 0.01:
+            return f'{num:.2e}'  # use scientific notation for very small numbers
+        else:
+            return f'{num:.2f}'
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str):
@@ -327,8 +340,11 @@ async def coins(ctx):
             price = data['current_price']
             change = round(data['price_change_percentage_24h'],1)
             cap = int(data['market_cap'])
-            if cap == 0:
-                cap = int(data['fully_diluted_valuation'])
+            if cap == 0: 
+                if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
+                    cap = int(data['fully_diluted_valuation'])
+                else:
+                    cap = 'N/A'
             mc_rank = data['market_cap_rank']
             if mc_rank is None:
                 mc_rank = 'N/A'
