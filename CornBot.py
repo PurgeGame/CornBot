@@ -229,7 +229,7 @@ async def search_coins(ctx, query: str):
             ath = format_number(prices[coin_id]['ath']) if prices[coin_id]['ath'] is not None else 'N/A'
             ath_change = prices[coin_id]['ath_change_percentage']
             ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
-            table.add_row([coin_id, price, f'{market_cap}', change, ath, f'{ath_change}%'])
+            table.add_row([coin_id, price, f'{market_cap}', f'{change}%', ath, f'{ath_change}%'])
 
             # Increment the counter
             num_coins += 1
