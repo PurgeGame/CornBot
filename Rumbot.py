@@ -51,11 +51,11 @@ async def update_activity():
     if price_eth == .999:
         return
     if change_eth >= 0:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬈{abs(change_eth):.1f}% {ratio:.4f}"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬈{abs(change_eth):.1f}% 🌽{f'{ratio:.4f}'[1:]}"))
     elif change_eth > -10:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬊{abs(change_eth):.1f}% {ratio:.4f}"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬊{abs(change_eth):.1f}% 🌽{f'{ratio:.4f}'[1:]}"))
     else:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} (:skull_crossbones: ⬊{abs(change_eth):.1f}% :skull_crossbones: {ratio:.4f}"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_eth} (:skull_crossbones: ⬊{abs(change_eth):.1f}% :skull_crossbones: 🌽{f'{ratio:.4f}'[1:]}"))
 
 token = os.environ.get("ETH_BOT_SECRET")
 bot.run(token)
