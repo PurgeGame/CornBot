@@ -118,7 +118,7 @@ async def price(ctx, coin: str):
         ath_percentage = int(price_data['ath_change_percentage'])
         price = format(price)
         ath = format(ath)
-        cap = format(cap)
+        cap = format_number(cap)
         if change >= 20:
             await ctx.edit(content=f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
         elif change >= 10:
