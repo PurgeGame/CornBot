@@ -119,14 +119,18 @@ async def price(ctx, coin: str):
         price = format(price)
         ath = format(ath)
         cap = format(cap)
-        if change >= 0:
+        if change >= 20:
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+        elif change >= 10:
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:stonks:820769750896476181> +{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+        elif change >= 0:
             # Edit the response to send the actual content
             await ctx.edit(content=f"The price of {coin_id} is ${price} (⬈{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
         elif change > -10:
             # Edit the response to send the actual content
             await ctx.edit(content=f"The price of {coin_id} is ${price} (⬊{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
         else:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (:skull_crossbones: ⬊{change}% :skull_crossbones:). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:notstonks:820769947462402099> {change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
     else:
         # Edit the response to send the actual content
         await ctx.edit(content=f"Could not find a coin with the ID '{coin}'")
