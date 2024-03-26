@@ -206,19 +206,34 @@ async def search_coins(ctx, query: str):
     table.align = 'r'  # right-align data
     table.align['ID'] = 'l'  # left-align IDs
 
-    # Add the coins to the table
+    # Add a counter for the number of coins added to the table
+    num_coins = 0
+
     for coin_id in matching_ids:
         if coin_id in prices:
-            price = format_number(prices[coin_id]['current_price'])
-            market_cap = format_number(prices[coin_id]['market_cap'])
-            change = f"{prices[coin_id]['price_change_percentage_24h']:.1f}"
-            ath = format_number(prices[coin_id]['ath'])
+            market_cap = prices[coin_id]['market_cap']
+            # Convert market cap to millions
+            market_cap_millions = market_cap / 1_000_000 if market_cap is not None else 0
+            # Skip coins with a market cap of less than $1 million
+            if market_cap_millions < 1:
+                continue
+
+            price = format_number(prices[coin_id]['current_price']) if prices[coin_id]['current_price'] is not None else 'N/A'
+            change = f"{prices[coin_id]['price_change_percentage_24h']:.1f}" if prices[coin_id]['price_change_percentage_24h'] is not None else 'N/A'
+            ath = format_number(prices[coin_id]['ath']) if prices[coin_id]['ath'] is not None else 'N/A'
             ath_change = prices[coin_id]['ath_change_percentage']
             ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
-            table.add_row([coin_id, f'{price}', f'{market_cap}', f'{change}%',  f'({ath_change}%) {ath}' if ath != 'N/A' and ath_change != 'N/A' else 'N/A'])
+            table.add_row([coin_id, price, f'{market_cap_millions:.2f}M', change, f'({ath_change}%) {ath}' if ath != 'N/A' and ath_change != 'N/A' else 'N/A'])
 
-    # Send the table
-    await ctx.edit(content=f'```\n{table}\n```')
+            # Increment the counter
+            num_coins += 1
+
+    # Check if any coins were added to the table
+    if num_coins == 0:
+        await ctx.edit(content='No coins with a market cap of $1 million or more were found.')
+    else:
+        # Send the table
+        await ctx.edit(content=f'```\n{table}\n```')
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
 async def add_coin(ctx, coin_id: str):
