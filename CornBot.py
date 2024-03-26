@@ -188,9 +188,11 @@ async def search_coins(ctx, query: str):
     # Defer the response
     await ctx.defer()
 
-    # Search for coins that match the query using the CoinGecko API
-    response = requests.get(f'https://api.coingecko.com/api/v3/search?query={query}')
-    matching_coins = response.json()
+    # Create an aiohttp.ClientSession
+    async with aiohttp.ClientSession() as session:
+        # Search for coins that match the query using the CoinGecko API
+        async with session.get(f'https://api.coingecko.com/api/v3/search?query={query}') as response:
+            matching_coins = await response.json()
 
     # Get the IDs of the top 10 matching coins
     matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
@@ -217,7 +219,6 @@ async def search_coins(ctx, query: str):
 
     # Send the table
     await ctx.edit(content=f'```\n{table}\n```')
-
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
 async def add_coin(ctx, coin_id: str):
