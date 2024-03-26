@@ -171,6 +171,20 @@ async def add(ctx, coins: str):
         # Edit the response to send the actual content
         await ctx.edit(content="None of the coins you provided were added. They might already be in your favorites or they are not valid.")
 
+def format_number(num):
+    if num is None:
+        return 'N/A'
+    elif num >= 1e9:
+        return f'{num/1e9:.2f}B'
+    elif num >= 1e6:
+        return f'{num/1e6:.2f}M'
+    elif num >= 1e3:
+        return f'{num/1e3:.2f}K'
+    elif num < 0.01:
+        return f'{num:.2e}'  # use scientific notation for very small numbers
+    else:
+        return f'{num:.2f}'
+
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str):
     # Defer the response
@@ -179,25 +193,29 @@ async def search_coins(ctx, query: str):
     # Search for coins that match the query using the CoinGecko API
     response = requests.get(f'https://api.coingecko.com/api/v3/search?query={query}')
     matching_coins = response.json()
-    print(matching_coins)
 
     # Get the IDs of the top 10 matching coins
     matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
 
-    # Fetch the prices, market cap, and 24-hour change for the matching coins
+    # Fetch the prices, market cap, 24-hour change, ath, and ath_change_percentage for the matching coins
     prices = await get_prices(matching_ids)
 
     # Create a table
     table = PrettyTable()
-    table.field_names = ['ID', 'Price', 'Market Cap', '24h Change']
+    table.field_names = ['ID', 'Price', 'Market Cap', '24h Change', 'ATH']
+    table.align = 'r'  # right-align data
+    table.align['ID'] = 'l'  # left-align IDs
 
     # Add the coins to the table
     for coin_id in matching_ids:
         if coin_id in prices:
-            price = prices[coin_id]['current_price']
-            market_cap = prices[coin_id]['market_cap']
-            change = prices[coin_id]['price_change_percentage_24h']
-            table.add_row([coin_id, price, market_cap, change])
+            price = format_number(prices[coin_id]['current_price'])
+            market_cap = format_number(prices[coin_id]['market_cap'])
+            change = format_number(prices[coin_id]['price_change_percentage_24h'])
+            ath = format_number(prices[coin_id]['ath'])
+            ath_change = prices[coin_id]['ath_change_percentage']
+            ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
+            table.add_row([coin_id, price, market_cap, f'{change}%', f'{ath} ({ath_change}%)' if ath != 'N/A' and ath_change != 'N/A' else 'N/A'])
 
     # Send the table
     await ctx.edit(content=f'```\n{table}\n```')
