@@ -120,7 +120,7 @@ async def price(ctx, coin: str):
             if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
                 cap = int(data['fully_diluted_valuation'])
             else:
-                cap = 'N/A'
+                cap = '0'
         mc_rank = price_data['market_cap_rank']
         if mc_rank is None:
             mc_rank = 'N/A'
@@ -195,7 +195,7 @@ def is_number(s):
 def format_number(num):
 
     if num is None or not is_number(num):
-        return 'N/A'
+        return 0
     else:
         num = float(num)
         if num >= 1e7:
@@ -203,7 +203,7 @@ def format_number(num):
         elif num >= 1e3:
             return f'{round(num):,}'
         elif num == 0:
-            return 'N/A'
+            return 0
         elif num < 0.01:
             return f'{num:.2e}'  # use scientific notation for very small numbers
         else:
@@ -344,11 +344,10 @@ async def coins(ctx):
                 if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
                     cap = int(data['fully_diluted_valuation'])
                 else:
-                    cap = 'N/A'
+                    cap = 0
             mc_rank = data['market_cap_rank']
             if mc_rank is None:
                 mc_rank = 'N/A'
-
             ath = format(data['ath'])
             off_ath = int(data['ath_change_percentage'])
             price = format(price)
