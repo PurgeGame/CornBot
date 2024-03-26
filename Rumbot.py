@@ -3,6 +3,9 @@ from discord.ext import tasks
 import requests
 import os
 import random
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 intents = discord.Intents.default()  # Create a new Intents object with default settings
