@@ -177,12 +177,12 @@ async def search_coins(ctx, query: str):
     await ctx.defer()
 
     # Search for coins that match the query using the CoinGecko API
-    response = requests.get(f'https://api.coingecko.com/api/v3/coins/list?search={query}')
+    response = requests.get(f'https://api.coingecko.com/api/v3/search?query={query}')
     matching_coins = response.json()
+    print(matching_coins)
 
-    # If there are fewer than 50 matching coins, get their IDs, price, and market cap
-        # Get the IDs of the matching coins
-    matching_ids = [coin['id'] for coin in matching_coins[:10]]
+    # Get the IDs of the top 10 matching coins
+    matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
 
     # Fetch the prices, market cap, and 24-hour change for the matching coins
     prices = await get_prices(matching_ids)
@@ -191,16 +191,16 @@ async def search_coins(ctx, query: str):
     table = PrettyTable()
     table.field_names = ['ID', 'Price', 'Market Cap', '24h Change']
 
-    # Add the top 5 coins to the table
-    for coin_id in matching_ids[:10]:
+    # Add the coins to the table
+    for coin_id in matching_ids:
         if coin_id in prices:
-            price = prices[coin_id]['usd']
-            market_cap = prices[coin_id]['usd_market_cap']
-            change = prices[coin_id]['usd_24h_change']
+            price = prices[coin_id]['current_price']
+            market_cap = prices[coin_id]['market_cap']
+            change = prices[coin_id]['price_change_percentage_24h']
             table.add_row([coin_id, price, market_cap, change])
 
     # Send the table
-    await ctx.send(f'```\n{table}\n```')
+    await ctx.edit(content=f'```\n{table}\n```')
 
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
