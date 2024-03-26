@@ -11,6 +11,7 @@ bot = discord.Bot(intents=intents)  # Pass the Intents object to the Bot
 GECKO_API = os.environ.get("GECKO_API")
 global change_eth
 change_eth = None
+global ratio
 
 
 @bot.event
@@ -21,12 +22,15 @@ async def on_ready():
 def get_eth_price():
     rand = random.randint(0, 100)
     global change_eth
+    global ratio
     try:
         if rand%2 == 1 or change_eth is None:
             url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
             response = requests.get(url)
             price_eth = response.json()['ethereum']['usd']
+            price_btc = response.json()['bitcoin']['usd']
             change_eth = int(response.json()['ethereum']['usd_24h_change'] * 100)/100
+            ratio = price_eth/price_btc
         if rand%2 == 0:
             response = requests.get('https://api.coinbase.com/v2/prices/ETH-USD/spot')
             price_eth = response.json()['data']['amount']
@@ -35,19 +39,20 @@ def get_eth_price():
     except:
         price_eth = .999
         change_eth = 0
-    return (price_eth, change_eth)
+        ratio = 0
+    return (price_eth, change_eth, ratio)
 @tasks.loop(minutes=1)  # Create a task that runs every minute
 async def update_activity():
 
-    price_eth, change_eth = get_eth_price()
+    price_eth, change_eth, ratio = get_eth_price()
     if price_eth == .999:
         return
     if change_eth >= 0:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬈{change_eth}%"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬈{abs(change_eth):.1f}% {ratio:.4f}"))
     elif change_eth > -10:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬊{change_eth}%"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬊{abs(change_eth):.1f}% {ratio:.4f}"))
     else:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} (:skull_crossbones: ⬊{change_eth}% :skull_crossbones:)"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_eth} (:skull_crossbones: ⬊{abs(change_eth):.1f}% :skull_crossbones: {ratio:.4f}"))
 
 token = os.environ.get("ETH_BOT_SECRET")
 bot.run(token)

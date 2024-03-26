@@ -311,7 +311,7 @@ async def coins(ctx):
             table.add_row([coin_data[0], f"${coin_data[1]}", f"⬈{coin_data[2]}%" if coin_data[2] >= 0 else f"⬊{coin_data[2]}%", f"${coin_data[3]:,}", coin_data[4]])
 
         # Edit the response to send the actual content
-        await ctx.edit(content=f"```{table}```")
+        await ctx.edit(content=f'```\n{table}\n```')
     else:
         # Edit the response to send the actual content
         await ctx.edit(content="You don't have any favorite coins saved.")
