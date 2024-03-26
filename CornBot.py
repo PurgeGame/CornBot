@@ -174,12 +174,10 @@ async def add(ctx, coins: str):
 def format_number(num):
     if num is None:
         return 'N/A'
-    elif num >= 1e9:
-        return f'{num/1e9:.2f}B'
-    elif num >= 1e6:
-        return f'{num/1e6:.2f}M'
+    elif num >= 1e7:
+        return f'{num/1e6:,.0f}M'
     elif num >= 1e3:
-        return f'{num/1e3:.2f}K'
+        return f'{round(num):,}'
     elif num < 0.01:
         return f'{num:.2e}'  # use scientific notation for very small numbers
     else:
@@ -202,7 +200,7 @@ async def search_coins(ctx, query: str):
 
     # Create a table
     table = PrettyTable()
-    table.field_names = ['ID', 'Price', 'Market Cap', '24h Change', 'ATH']
+    table.field_names = ['ID', 'Price', 'Market Cap', '24h', 'ATH']
     table.align = 'r'  # right-align data
     table.align['ID'] = 'l'  # left-align IDs
 
@@ -211,11 +209,11 @@ async def search_coins(ctx, query: str):
         if coin_id in prices:
             price = format_number(prices[coin_id]['current_price'])
             market_cap = format_number(prices[coin_id]['market_cap'])
-            change = format_number(prices[coin_id]['price_change_percentage_24h'])
+            change = f"{prices[coin_id]['price_change_percentage_24h']:.1f}"
             ath = format_number(prices[coin_id]['ath'])
             ath_change = prices[coin_id]['ath_change_percentage']
             ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
-            table.add_row([coin_id, price, market_cap, f'{change}%', f'{ath} ({ath_change}%)' if ath != 'N/A' and ath_change != 'N/A' else 'N/A'])
+            table.add_row([coin_id, f'{price}', f'{market_cap}', f'{change}%',  f'({ath_change}%) {ath}' if ath != 'N/A' and ath_change != 'N/A' else 'N/A'])
 
     # Send the table
     await ctx.edit(content=f'```\n{table}\n```')
@@ -294,7 +292,7 @@ async def coins(ctx):
             cap = int(data['market_cap'])
             ath = format(data['ath'])
             off_ath = int(data['ath_change_percentage'])
-            ath_field = f"{ath} ({off_ath}%)"
+            ath_field = f"({off_ath}%) {ath}"
             if price > 100:
                 price = f'{int(price):,}' 
             elif price > 1:
@@ -308,7 +306,7 @@ async def coins(ctx):
 
         # Add a row for each coin
         for coin_data in coins_data:
-            table.add_row([coin_data[0], f"${coin_data[1]}", f"⬈{coin_data[2]}%" if coin_data[2] >= 0 else f"⬊{coin_data[2]}%", f"${coin_data[3]:,}", coin_data[4]])
+            table.add_row([coin_data[0], f"{coin_data[1]}", f"⬈{coin_data[2]}%" if coin_data[2] >= 0 else f"⬊{coin_data[2]}%", f"{coin_data[3]:,}", coin_data[4]])
 
         # Edit the response to send the actual content
         await ctx.edit(content=f'```\n{table}\n```')
