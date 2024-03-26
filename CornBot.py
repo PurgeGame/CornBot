@@ -359,7 +359,7 @@ async def coins(ctx):
 
         # Add a row for each coin
         for coin_data in coins_data:
-            table.add_row([coin_data[0], f"{coin_data[1]}", f"+{coin_data[2]}%" if coin_data[2] >= 0 else f"-{coin_data[2]}%", f"{format_number(coin_data[3])}", coin_data[4], f"{coin_data[5]}%"])
+            table.add_row([coin_data[0], f"{coin_data[1]}", f"+{coin_data[2]}%" if coin_data[2] >= 0 else f"{coin_data[2]}%", f"{format_number(coin_data[3])}", coin_data[4], f"{coin_data[5]}%"])
 
         # Edit the response to send the actual content
         await ctx.edit(content=f'```\n{table}\n```')
