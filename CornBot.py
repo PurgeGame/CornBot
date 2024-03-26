@@ -90,6 +90,8 @@ def format(price):
         price = f'{int(price):,}' 
     elif price > 1:
         price = round(price,2)
+    elif price >.01:
+        price = f'{price:.2f}'
     else:
         price = round_sig(price,2)
     return price
@@ -114,23 +116,28 @@ async def price(ctx, coin: str):
         price = price_data['current_price']
         change = round(price_data['price_change_percentage_24h'],1)
         cap = int(price_data['market_cap'])
+        if cap == 0:
+            cap = int(price_data['fully_diluted_valuation'])
+        mc_rank = price_data['market_cap_rank']
+        if mc_rank is None:
+            mc_rank = 'N/A'
         ath = price_data['ath']
         ath_percentage = int(price_data['ath_change_percentage'])
         price = format(price)
         ath = format(ath)
         cap = format_number(cap)
         if change >= 20:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
         elif change >= 10:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:stonks:820769750896476181> +{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:stonks:820769750896476181> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
         elif change >= 0:
             # Edit the response to send the actual content
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (⬈{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (⬈{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
         elif change > -10:
             # Edit the response to send the actual content
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (⬊{change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (⬊{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
         else:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:notstonks:820769947462402099> {change}%). Market Cap: ${cap}. ATH: ${ath} ({ath_percentage}%)")
+            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:notstonks:820769947462402099> {change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
     else:
         # Edit the response to send the actual content
         await ctx.edit(content=f"Could not find a coin with the ID '{coin}'")
@@ -182,6 +189,8 @@ def format_number(num):
         return f'{num/1e6:,.0f} M'
     elif num >= 1e3:
         return f'{round(num):,}'
+    elif num == 0:
+        return 'N/A'
     elif num < 0.01:
         return f'{num:.2e}'  # use scientific notation for very small numbers
     else:
@@ -263,7 +272,7 @@ async def add_coin(ctx, coin_id: str):
         favorites[user_id] = []
 
     # Check if the coin_id exists in coins
-    with open('coins.json', 'r') as f:
+    with open('coins.json', 'r', encoding='utf-8') as f:
         coins = json.load(f)
     if any(coin['id'] == coin_id for coin in coins):
         # Add the coin to the favorites if it's not already there
@@ -318,14 +327,15 @@ async def coins(ctx):
             price = data['current_price']
             change = round(data['price_change_percentage_24h'],1)
             cap = int(data['market_cap'])
+            if cap == 0:
+                cap = int(data['fully_diluted_valuation'])
+            mc_rank = data['market_cap_rank']
+            if mc_rank is None:
+                mc_rank = 'N/A'
+
             ath = format(data['ath'])
             off_ath = int(data['ath_change_percentage'])
-            if price > 100:
-                price = f'{int(price):,}' 
-            elif price > 1:
-                price = round(price,2)
-            else:
-                price = round_sig(price,2)
+            price = format(price)
             coins_data.append([coin, price, change, cap, ath, off_ath])
 
         # Sort the coins by market cap in descending order
