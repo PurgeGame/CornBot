@@ -175,7 +175,7 @@ def format_number(num):
     if num is None:
         return 'N/A'
     elif num >= 1e7:
-        return f'{num/1e6:,.0f}M'
+        return f'{num/1e6:,.0f} M'
     elif num >= 1e3:
         return f'{round(num):,}'
     elif num < 0.01:
@@ -202,7 +202,7 @@ async def search_coins(ctx, query: str):
 
     # Create a table
     table = PrettyTable()
-    table.field_names = ['ID', 'Price', 'Market Cap', '24h', 'ATH']
+    table.field_names = ['ID', 'Price', 'Market Cap', 'Δ 24h', 'ATH', 'Δ ATH']
     table.align = 'r'  # right-align data
     table.align['ID'] = 'l'  # left-align IDs
 
@@ -212,18 +212,24 @@ async def search_coins(ctx, query: str):
     for coin_id in matching_ids:
         if coin_id in prices:
             market_cap = prices[coin_id]['market_cap']
-            # Convert market cap to millions
-            market_cap_millions = market_cap / 1_000_000 if market_cap is not None else 0
-            # Skip coins with a market cap of less than $1 million
-            if market_cap_millions < 1:
+            if market_cap is not None:
+                if market_cap < 1000000:
+                    continue
+            else:
                 continue
+            market_cap = format_number(market_cap)  
 
             price = format_number(prices[coin_id]['current_price']) if prices[coin_id]['current_price'] is not None else 'N/A'
-            change = f"{prices[coin_id]['price_change_percentage_24h']:.1f}" if prices[coin_id]['price_change_percentage_24h'] is not None else 'N/A'
+            change = prices[coin_id]['price_change_percentage_24h']
+            if change is not None:
+                symbol = '+' if change >= 0 else '-'
+                change = f"{symbol}{abs(change):.1f}"
+            else:
+                change = 'N/A'
             ath = format_number(prices[coin_id]['ath']) if prices[coin_id]['ath'] is not None else 'N/A'
             ath_change = prices[coin_id]['ath_change_percentage']
             ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
-            table.add_row([coin_id, price, f'{market_cap_millions:.2f}M', change, f'({ath_change}%) {ath}' if ath != 'N/A' and ath_change != 'N/A' else 'N/A'])
+            table.add_row([coin_id, price, f'{market_cap}', change, ath, f'{ath_change}%'])
 
             # Increment the counter
             num_coins += 1
@@ -294,11 +300,13 @@ async def coins(ctx):
 
         # Create a table with headers
         table = PrettyTable()
-        table.field_names = ["Coin", "Price", "24h Change", "Market Cap", "ATH"]
+        table.field_names = ["Coin", "Price", "Δ 24h", "Market Cap", "ATH", "Δ ATH"]
         table.align["Price"] = "r"
+        table.align["Δ 24h"] = "r"
         table.align["Coin"] = "l"
         table.align["Market Cap"] = "r"
         table.align["ATH"] = "r"
+        table.align["Δ ATH"] = "r"
 
         # Create a list of coins with their data
         coins_data = []
@@ -308,21 +316,20 @@ async def coins(ctx):
             cap = int(data['market_cap'])
             ath = format(data['ath'])
             off_ath = int(data['ath_change_percentage'])
-            ath_field = f"({off_ath}%) {ath}"
             if price > 100:
                 price = f'{int(price):,}' 
             elif price > 1:
                 price = round(price,2)
             else:
                 price = round_sig(price,2)
-            coins_data.append([coin, price, change, cap, ath_field])
+            coins_data.append([coin, price, change, cap, ath, off_ath])
 
         # Sort the coins by market cap in descending order
         coins_data.sort(key=lambda x: x[3], reverse=True)
 
         # Add a row for each coin
         for coin_data in coins_data:
-            table.add_row([coin_data[0], f"{coin_data[1]}", f"⬈{coin_data[2]}%" if coin_data[2] >= 0 else f"⬊{coin_data[2]}%", f"{coin_data[3]:,}", coin_data[4]])
+            table.add_row([coin_data[0], f"{coin_data[1]}", f"+{coin_data[2]}%" if coin_data[2] >= 0 else f"-{coin_data[2]}%", f"{format_number(coin_data[3])}", coin_data[4], f"{coin_data[5]}%"])
 
         # Edit the response to send the actual content
         await ctx.edit(content=f'```\n{table}\n```')
