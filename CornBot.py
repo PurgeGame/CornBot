@@ -347,6 +347,26 @@ async def removefromlist(ctx, list_name: str, coins: str):
     message = await manage_coins(ctx, list_name, coins, 'remove')
     await ctx.edit(content=message)
 
+@bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
+async def add_coin(ctx, coin_id: str):
+    # Defer the response
+    await ctx.defer()
+
+    user_id = str(ctx.author.id)
+
+    # Check if the coin_id exists in coins
+    with open('coins.json', 'r', encoding='utf-8') as f:
+        coins = json.load(f)
+    if any(coin['id'] == coin_id for coin in coins):
+        # Add the coin to the favorites if it's not already there
+        message = await manage_coins(ctx, user_id, [coin_id], 'add')
+
+        # Edit the response to send the actual content
+        await ctx.edit(content=message)
+    else:
+        # Edit the response to send the actual content
+        await ctx.edit(content="The coin you provided is not valid.")
+
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
