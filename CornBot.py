@@ -321,7 +321,7 @@ async def manage_coins(ctx, user_id, coins, action):
     return message
 
 async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_name=None):
-    await ctx.defer()
+    await ctx.defer(ephemeral=True)
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, user_id, coins, action)
