@@ -330,21 +330,28 @@ async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_
         message += f" to the list {list_name}" if action == 'add' else f" from the list {list_name}"
     await ctx.edit(content=message)
 
-@bot.slash_command(name="add", description="Add coins to your favorites")
-async def add(ctx, coins: str):
-    await manage_coins_command(ctx, coins, str(ctx.author.id), 'add')
+async def check_list_name(list_name):
+    return sum(c.isdigit() for c in list_name) <= 10
 
-@bot.slash_command(name="remove", description="Remove coins from your favorites")
-async def remove(ctx, coins: str):
-    await manage_coins_command(ctx, coins, str(ctx.author.id), 'remove')
+@bot.slash_command(name="add", description="Add coins to your favorites or a list")
+async def add(ctx, coins: str, list_name: str = None):
+    if list_name:
+        if not await check_list_name(list_name):
+            await ctx.send("List name cannot contain more than 10 digits.")
+            return
+        await manage_coins_command(ctx, coins, list_name, 'add', list_name)
+    else:
+        await manage_coins_command(ctx, coins, str(ctx.author.id), 'add')
 
-@bot.slash_command(name="addlist", description="Add a coin to the list")
-async def addlist(ctx, list_name: str, coins: str):
-    await manage_coins_command(ctx, coins, list_name, 'add', list_name)
-
-@bot.slash_command(name="removelist", description="Remove a coin from a list")
-async def removefromlist(ctx, list_name: str, coins: str):
-    await manage_coins_command(ctx, coins, list_name, 'remove', list_name)
+@bot.slash_command(name="remove", description="Remove coins from your favorites or a list")
+async def remove(ctx, coins: str, list_name: str = None):
+    if list_name:
+        if not await check_list_name(list_name):
+            await ctx.send("List name cannot contain more than 10 digits.")
+            return
+        await manage_coins_command(ctx, coins, list_name, 'remove', list_name)
+    else:
+        await manage_coins_command(ctx, coins, str(ctx.author.id), 'remove')
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
 async def add_coin(ctx, coin_id: str):
