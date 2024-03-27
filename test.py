@@ -76,7 +76,7 @@ async def get_coin_with_lowest_market_cap_rank(coin_ids):
                         lowest_rank = coin_data['market_cap_rank']
                         lowest_rank_id = coin_id
         return lowest_rank_id
-
+    
 @bot.slash_command(name="price", description="Show the current price for a coin")
 async def price(ctx, coins: str):
     # Defer the response
@@ -85,54 +85,27 @@ async def price(ctx, coins: str):
     # Split the coins parameter by commas to get a list of coins
     coins = [coin.strip() for coin in coins.split(',')]
 
-    # Create a list to store the messages
-    messages = []
+    # Create a dictionary to store the coin data
+    coins_data = {}
 
     # Loop over the list of coins
     for coin in coins:
         # Check the coin
         coin_id = await check_coin(coin)
         if not coin_id:
-            # If the coin is not valid, add an error message to the list
-            messages.append(f"Could not find a coin with the ID '{coin}'")
+            # If the coin is not valid, continue to the next coin
             continue
 
         # Fetch the current price for the coin
         data = await get_prices([coin_id])
 
         if data and coin_id in data:
-            price_data = data[coin_id]
-            price = price_data['current_price']
-            change = round(price_data['price_change_percentage_24h'],1)
-            cap = int(price_data['market_cap'])
-            if cap == 0: 
-                if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
-                    cap = int(data['fully_diluted_valuation'])
-                else:
-                    cap = '0'
-            mc_rank = price_data['market_cap_rank']
-            if mc_rank is None:
-                mc_rank = 'N/A'
-            ath = price_data['ath']
-            ath_percentage = int(price_data['ath_change_percentage'])
-            price = format_number(price)
-            ath = format_number(ath)
-            cap = format_number(cap)
-            if change >= 20:
-                messages.append(f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-            elif change >= 10:
-                messages.append(f"The price of {coin_id} is ${price} (<:stonks:820769750896476181> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-            elif change >= 0:
-                messages.append(f"The price of {coin_id} is ${price} (⬈{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-            elif change > -10:
-                messages.append(f"The price of {coin_id} is ${price} (⬊{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-            else:
-                messages.append(f"The price of {coin_id} is ${price} (<:notstonks:820769947462402099> {change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-        else:
-            messages.append(f"Could not find a coin with the ID '{coin}'")
+            # Add the coin data to the dictionary
+            coins_data[coin_id] = data[coin_id]
 
-    # Join the messages into a single string and edit the response to send the actual content
-    await ctx.edit(content='\n'.join(messages))
+    # Use the display_coins function to display the coin data
+    await display_coins(ctx, coins_data)
+
 
 
 
@@ -181,7 +154,7 @@ async def display_coins(ctx, coins_data, display_id=False):
         prices = coin_data
         market_cap = prices['market_cap']
         if market_cap is not None:
-            if market_cap < 1000000:
+            if market_cap < 1000000 and market_cap !=0:
                 continue
         else:
             continue
