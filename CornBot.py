@@ -115,8 +115,12 @@ def is_number(n):
     except ValueError:
         return False
 
-def round_sig(n, sig=2):
-    return round(n, sig - int(floor(log10(abs(n)))) - 1)
+def round_sig(num, sig_figs):
+    if num != 0:
+        return round(num, -int(math.floor(math.log10(abs(num))) - (sig_figs - 1)))
+    else:
+        return 0  # Can't take the log of 0
+
 
 def format_number(num):
     if num is None or not is_number(num):
@@ -142,7 +146,7 @@ def format_number(num):
 async def display_coins(ctx, coins_data, display_id=False):
     # Create a table
     table = PrettyTable()
-    table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'ATH', 'Δ ATH']
+    table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Rank', 'ATH', 'Δ ATH']
     table.align = 'r'  # right-align data
     table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
@@ -169,7 +173,10 @@ async def display_coins(ctx, coins_data, display_id=False):
         ath = format_number(prices['ath']) if prices['ath'] is not None else 'N/A'
         ath_change = prices['ath_change_percentage']
         ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
-        table.add_row([coin_id, price, f'{change}%', f'{market_cap}', ath, f'{ath_change}%'])
+
+        mc_rank = prices['market_cap_rank'] if prices['market_cap_rank'] is not None else 'N/A'
+
+        table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f'{ath_change}%'])
 
         # Increment the counter
         num_coins += 1
