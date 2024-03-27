@@ -246,7 +246,7 @@ async def ofa(ctx):
     coin = random.choice(coins)
     # Get the price of the coin
     prices = await get_prices([coin])
-    price = prices[coin]['current_price']
+    price = format_number(prices[coin]['current_price'])
     rand = random.random()
     if rand < .5:
         leverage = 0
