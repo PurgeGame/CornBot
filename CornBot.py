@@ -1,6 +1,5 @@
 import discord
 from discord.ext import tasks
-import requests
 import os
 import json
 import math
@@ -8,6 +7,8 @@ from prettytable import PrettyTable
 import aiohttp
 import random
 from dotenv import load_dotenv
+from typing import Optional
+
 
 load_dotenv()
 
@@ -189,7 +190,7 @@ async def display_coins(ctx, coins_data, display_id=False):
         await ctx.edit(content=f'```\n{table}\n```')
 
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
-async def coins(ctx):
+async def coins(ctx, list_name: Optional[str] = None):
     # Defer the response
     await ctx.defer()
 
@@ -201,16 +202,23 @@ async def coins(ctx):
         with open('favorites.json', 'r') as f:
             favorites = json.load(f)
 
-    # Check if the user has any favorites saved
-    if user_id in favorites and favorites[user_id]:
-        # Fetch the current prices for all favorite coins
-        prices = await get_prices(favorites[user_id])
-
-        # Display the coins
-        await display_coins(ctx, prices)
+    # Check if a list name was provided
+    if list_name:
+        # Use the coins from the provided list if it exists
+        coins = favorites.get(list_name, [])
+    elif user_id in favorites and favorites[user_id]:
+        # Use the user's favorite coins if no list was provided
+        coins = favorites[user_id]
     else:
         # Edit the response to send the actual content
         await ctx.edit(content="You don't have any favorite coins saved.")
+        return
+
+    # Fetch the current prices for all coins
+    prices = await get_prices(coins)
+
+    # Display the coins
+    await display_coins(ctx, prices)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str):
@@ -274,15 +282,16 @@ async def save_favorites(favorites):
 async def manage_coins(ctx, user_id, coins, action):
     favorites = await load_favorites()
     user_favorites = favorites.get(user_id, [])
-    coin_ids = [await check_coin(coin) for coin in coins]
+
     if action == 'add':
-        added_coins = [coin for coin in coin_ids if coin and coin not in user_favorites]
+        added_coins = [coin for coin in coins if coin not in user_favorites]
         user_favorites.extend(added_coins)
         message = f"Added coins to your favorites: {', '.join(added_coins)}"
     elif action == 'remove':
-        removed_coins = [coin for coin in coin_ids if coin and coin in user_favorites]
+        removed_coins = [coin for coin in coins if coin in user_favorites]
         user_favorites = [coin for coin in user_favorites if coin not in removed_coins]
         message = f"Removed coins from your favorites: {', '.join(removed_coins)}"
+
     favorites[user_id] = user_favorites
     await save_favorites(favorites)
     return message
