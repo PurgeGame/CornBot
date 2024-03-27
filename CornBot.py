@@ -26,7 +26,7 @@ change_btc = None
 
 async def get_prices(coins):
     # Convert the list of coins to a comma-separated string
-    coins_str = ','.join(coins)
+    coins_str = ', '.join(coin for coin in coins if coin is not None)
 
     # Define the URL and headers
     url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coins_str}"
@@ -291,7 +291,7 @@ async def manage_coins(ctx, user_id, coins, action):
     if action == 'add':
         added_coins = [coin for coin in coins if coin not in user_favorites]
         user_favorites.extend(added_coins)
-        message = f"Added coins to your favorites: {', '.join(added_coins)}"
+        message = f"Added coins to your favorites: {', '.join(coin for coin in added_coins if coin is not None)}"
     elif action == 'remove':
         removed_coins = [coin for coin in coins if coin in user_favorites]
         user_favorites = [coin for coin in user_favorites if coin not in removed_coins]
