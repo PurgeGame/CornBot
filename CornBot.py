@@ -85,7 +85,7 @@ async def price(ctx, coins: str):
 
     # Split the coins parameter by commas to get a list of coins
     coins = [coin.strip() for coin in coins.split(',')]
-
+    
     # Create a dictionary to store the coin data
     coins_data = {}
 
