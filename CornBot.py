@@ -337,6 +337,8 @@ async def addlist(ctx, list_name: str, coins: str):
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, list_name, coins, 'add')
+    message = message.replace("Added coins to your favorites", "Added coins")
+    message += f" to the list {list_name}"
     await ctx.edit(content=message)
 
 @bot.slash_command(name="removelist", description="Remove a coin from a list")
@@ -345,6 +347,8 @@ async def removefromlist(ctx, list_name: str, coins: str):
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, list_name, coins, 'remove')
+    message = message.replace("Removed coins from your favorites", "Removed coins")
+    message += f" from the list {list_name}"
     await ctx.edit(content=message)
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
