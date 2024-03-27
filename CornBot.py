@@ -97,53 +97,61 @@ def format(price):
     return price
 
 @bot.slash_command(name="price", description="Show the current price for a coin")
-async def price(ctx, coin: str):
+async def price(ctx, coins: str):
     # Defer the response
     await ctx.defer()
 
-    # Check the coin
-    coin_id = await check_coin(coin)
-    if not coin_id:
-        # If the coin is not valid, send an error message
-        await ctx.edit(content=f"Could not find a coin with the ID '{coin}'")
-        return
+    # Split the coins parameter by commas to get a list of coins
+    coins = [coin.strip() for coin in coins.split(',')]
 
-    # Fetch the current price for the coin
-    data = await get_prices([coin_id])
+    # Create a list to store the messages
+    messages = []
 
-    if data and coin_id in data:
-        price_data = data[coin_id]
-        price = price_data['current_price']
-        change = round(price_data['price_change_percentage_24h'],1)
-        cap = int(price_data['market_cap'])
-        if cap == 0: 
-            if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
-                cap = int(data['fully_diluted_valuation'])
+    # Loop over the list of coins
+    for coin in coins:
+        # Check the coin
+        coin_id = await check_coin(coin)
+        if not coin_id:
+            # If the coin is not valid, add an error message to the list
+            messages.append(f"Could not find a coin with the ID '{coin}'")
+            continue
+
+        # Fetch the current price for the coin
+        data = await get_prices([coin_id])
+
+        if data and coin_id in data:
+            price_data = data[coin_id]
+            price = price_data['current_price']
+            change = round(price_data['price_change_percentage_24h'],1)
+            cap = int(price_data['market_cap'])
+            if cap == 0: 
+                if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
+                    cap = int(data['fully_diluted_valuation'])
+                else:
+                    cap = '0'
+            mc_rank = price_data['market_cap_rank']
+            if mc_rank is None:
+                mc_rank = 'N/A'
+            ath = price_data['ath']
+            ath_percentage = int(price_data['ath_change_percentage'])
+            price = format(price)
+            ath = format(ath)
+            cap = format_number(cap)
+            if change >= 20:
+                messages.append(f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
+            elif change >= 10:
+                messages.append(f"The price of {coin_id} is ${price} (<:stonks:820769750896476181> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
+            elif change >= 0:
+                messages.append(f"The price of {coin_id} is ${price} (⬈{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
+            elif change > -10:
+                messages.append(f"The price of {coin_id} is ${price} (⬊{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
             else:
-                cap = '0'
-        mc_rank = price_data['market_cap_rank']
-        if mc_rank is None:
-            mc_rank = 'N/A'
-        ath = price_data['ath']
-        ath_percentage = int(price_data['ath_change_percentage'])
-        price = format(price)
-        ath = format(ath)
-        cap = format_number(cap)
-        if change >= 20:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (<a:STONKSgiga:963654243645022299> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-        elif change >= 10:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:stonks:820769750896476181> +{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-        elif change >= 0:
-            # Edit the response to send the actual content
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (⬈{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-        elif change > -10:
-            # Edit the response to send the actual content
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (⬊{change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
+                messages.append(f"The price of {coin_id} is ${price} (<:notstonks:820769947462402099> {change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
         else:
-            await ctx.edit(content=f"The price of {coin_id} is ${price} (<:notstonks:820769947462402099> {change}%). Market Cap: ${cap} (#{mc_rank}). ATH: ${ath} ({ath_percentage}%)")
-    else:
-        # Edit the response to send the actual content
-        await ctx.edit(content=f"Could not find a coin with the ID '{coin}'")
+            messages.append(f"Could not find a coin with the ID '{coin}'")
+
+    # Join the messages into a single string and edit the response to send the actual content
+    await ctx.edit(content='\n'.join(messages))
 
 
 @bot.slash_command(name="add", description="Add coins to your favorites")
@@ -208,6 +216,33 @@ def format_number(num):
             return f'{num:.2e}'  # use scientific notation for very small numbers
         else:
             return f'{num:.2f}'
+        
+@bot.slash_command(name="addlist", description="Add a coin to the list")
+async def addlist(ctx, list_name: str, coin: str):
+    # Check the coin
+    coin_id = await check_coin(coin)
+    if not coin_id:
+        # If the coin is not valid, send an error message
+        await ctx.send(f"Could not find a coin with the ID '{coin}'")
+        return
+
+    # Load the favorites from the JSON file
+    with open('favorites.json', 'r') as f:
+        favorites = json.load(f)
+
+    # If the list does not exist in the favorites, create it
+    if list_name not in favorites:
+        favorites[list_name] = []
+
+    # Add the coin to the list
+    favorites[list_name].append(coin_id)
+
+    # Save the favorites back to the JSON file
+    with open('favorites.json', 'w') as f:
+        json.dump(favorites, f)
+
+    # Send a confirmation message
+    await ctx.send(f"Added '{coin_id}' to the list '{list_name}'.")
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str):
@@ -406,23 +441,27 @@ async def remove(ctx, coins: str):
         # Edit the response to send the actual content
         await ctx.edit(content="You don't have any favorite coins saved.")
 
-def get_bitcoin_price():
+async def get_bitcoin_price():
     rand = random.randint(0, 21)
     global change_btc
     try:
-        if rand%3 == 1 or not change_btc:
-            url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
-            headers = {"x-cg-demo-api-key": GECKO_API}
-            response = requests.get(url, headers=headers)
-            price_btc = response.json()['bitcoin']['usd']
-            change_btc = int(response.json()['bitcoin']['usd_24h_change'] * 100)/100
-        elif rand%3 == 0:
-            response = requests.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json')
-            price_btc = response.json()['bpi']['USD']['rate_float']
-        else:
-            response = requests.get('https://api.coinbase.com/v2/prices/BTC-USD/spot')
-            price_btc = response.json()['data']['amount']
-        price_btc = f'{int(float(price_btc)):,}'
+        async with aiohttp.ClientSession() as session:
+            if rand%3 == 1 or not change_btc:
+                url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true"
+                headers = {"x-cg-demo-api-key": GECKO_API}
+                async with session.get(url, headers=headers) as response:
+                    data = await response.json()
+                    price_btc = data['bitcoin']['usd']
+                    change_btc = int(data['bitcoin']['usd_24h_change'] * 100)/100
+            elif rand%3 == 0:
+                async with session.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json') as response:
+                    data = await response.json()
+                    price_btc = data['bpi']['USD']['rate_float']
+            else:
+                async with session.get('https://api.coinbase.com/v2/prices/BTC-USD/spot') as response:
+                    data = await response.json()
+                    price_btc = data['data']['amount']
+            price_btc = f'{int(float(price_btc)):,}'
         
     except:
         price_btc = .999
@@ -437,7 +476,7 @@ async def on_ready():
 @tasks.loop(minutes = 1)  # Create a task that runs every minute
 async def update_activity():
 
-    price_btc, change = get_bitcoin_price()
+    price_btc, change = await get_bitcoin_price()
     if price_btc == .999:
         return
     if change >= 0:
