@@ -173,11 +173,11 @@ async def display_coins(ctx, coins_data, display_id=False):
             change = 'N/A'
         ath = format_number(prices['ath']) if prices['ath'] is not None else 'N/A'
         ath_change = prices['ath_change_percentage']
-        ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
+        ath_change = 'N/A' if ath_change is None else ath_change
 
         mc_rank = prices['market_cap_rank'] if prices['market_cap_rank'] is not None else 'N/A'
 
-        table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f'{ath_change}%'])
+        table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
 
         # Increment the counter
         num_coins += 1
