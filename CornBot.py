@@ -66,17 +66,27 @@ async def check_coin(coin):
         return False
 
 async def get_coin_with_lowest_market_cap_rank(coin_ids):
+    # Convert the list of coin IDs to a comma-separated string
+    coin_ids_str = ', '.join(coin_ids)
+
+    # Define the URL
+    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coin_ids_str}"
+
+    # Send a request to the CoinGecko API
     async with aiohttp.ClientSession() as session:
-        lowest_rank_id = None
-        lowest_rank = float('inf')
-        for coin_id in coin_ids:
-            async with session.get(f'https://api.coingecko.com/api/v3/coins/{coin_id}') as response:
-                coin_data = await response.json()
-                if 'market_cap_rank' in coin_data and coin_data['market_cap_rank'] is not None:
-                    if coin_data['market_cap_rank'] < lowest_rank:
-                        lowest_rank = coin_data['market_cap_rank']
-                        lowest_rank_id = coin_id
+        async with session.get(url) as response:
+            data = await response.json()
+
+    # Check if the request was successful
+    if response.status == 200:
+        # Find the coin with the lowest market cap rank
+        lowest_rank_id = min(data, key=lambda coin: coin['market_cap_rank'] if coin['market_cap_rank'] is not None else float('inf'))['id']
+
+        # Return the ID of the coin with the lowest market cap rank
         return lowest_rank_id
+    else:
+        # If the request was not successful, return None
+        return None
 
 @bot.slash_command(name="price", description="Show the current price for a coin")
 async def price(ctx, coins: str):
