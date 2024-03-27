@@ -1,6 +1,6 @@
 import discord
 from discord.ext import tasks
-import requests
+import aiohttp
 import os
 import random
 from dotenv import load_dotenv
@@ -22,21 +22,24 @@ async def on_ready():
     print(f'We have logged in as {bot.user}')
     update_activity.start()  # Start the task as soon as the bot is ready
 
-def get_eth_price():
+async def get_eth_price():
     rand = random.randint(0, 100)
     global change_eth
     global ratio
     try:
-        if rand%2 == 1 or change_eth is None:
-            url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
-            response = requests.get(url)
-            price_eth = response.json()['ethereum']['usd']
-            price_btc = response.json()['bitcoin']['usd']
-            change_eth = int(response.json()['ethereum']['usd_24h_change'] * 100)/100
-            ratio = price_eth/price_btc
-        if rand%2 == 0:
-            response = requests.get('https://api.coinbase.com/v2/prices/ETH-USD/spot')
-            price_eth = response.json()['data']['amount']
+        async with aiohttp.ClientSession() as session:
+            if rand%2 == 1 or change_eth is None:
+                url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
+                async with session.get(url) as response:
+                    data = await response.json()
+                price_eth = data['ethereum']['usd']
+                price_btc = data['bitcoin']['usd']
+                change_eth = int(data['ethereum']['usd_24h_change'] * 100)/100
+                ratio = price_eth/price_btc
+            if rand%2 == 0:
+                async with session.get('https://api.coinbase.com/v2/prices/ETH-USD/spot') as response:
+                    data = await response.json()
+                price_eth = data['data']['amount']
         price_eth = f'{int(float(price_eth)):,}'
         
     except:
@@ -44,10 +47,11 @@ def get_eth_price():
         change_eth = 0
         ratio = 0
     return (price_eth, change_eth, ratio)
+
 @tasks.loop(minutes=1)  # Create a task that runs every minute
 async def update_activity():
 
-    price_eth, change_eth, ratio = get_eth_price()
+    price_eth, change_eth, ratio = await get_eth_price()
     if price_eth == .999:
         return
     if change_eth >= 0:
