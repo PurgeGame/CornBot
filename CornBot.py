@@ -167,59 +167,40 @@ def format_number(num):
             return round_sig(num, 2)
         
 
-
-
-
-@bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
-async def search_coins(ctx, query: str):
-    # Defer the response
-    await ctx.defer()
-
-    # Create an aiohttp.ClientSession
-    async with aiohttp.ClientSession() as session:
-        # Search for coins that match the query using the CoinGecko API
-        async with session.get(f'https://api.coingecko.com/api/v3/search?query={query}') as response:
-            matching_coins = await response.json()
-
-    # Get the IDs of the top 10 matching coins
-    matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
-
-    # Fetch the prices, market cap, 24-hour change, ath, and ath_change_percentage for the matching coins
-    prices = await get_prices(matching_ids)
-
+async def display_coins(ctx, coins_data, display_id=False):
     # Create a table
     table = PrettyTable()
-    table.field_names = ['ID', 'Price', 'Market Cap', 'Δ 24h', 'ATH', 'Δ ATH']
+    table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'ATH', 'Δ ATH']
     table.align = 'r'  # right-align data
-    table.align['ID'] = 'l'  # left-align IDs
+    table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
     # Add a counter for the number of coins added to the table
     num_coins = 0
 
-    for coin_id in matching_ids:
-        if coin_id in prices:
-            market_cap = prices[coin_id]['market_cap']
-            if market_cap is not None:
-                if market_cap < 1000000:
-                    continue
-            else:
+    for coin_id, coin_data in coins_data.items():
+        prices = coin_data
+        market_cap = prices['market_cap']
+        if market_cap is not None:
+            if market_cap < 1000000:
                 continue
-            market_cap = format_number(market_cap)  
+        else:
+            continue
+        market_cap = format_number(market_cap)  
 
-            price = format_number(prices[coin_id]['current_price']) if prices[coin_id]['current_price'] is not None else 'N/A'
-            change = prices[coin_id]['price_change_percentage_24h']
-            if change is not None:
-                symbol = '+' if change >= 0 else '-'
-                change = f"{symbol}{abs(change):.1f}"
-            else:
-                change = 'N/A'
-            ath = format_number(prices[coin_id]['ath']) if prices[coin_id]['ath'] is not None else 'N/A'
-            ath_change = prices[coin_id]['ath_change_percentage']
-            ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
-            table.add_row([coin_id, price, f'{market_cap}', f'{change}%', ath, f'{ath_change}%'])
+        price = format_number(prices['current_price']) if prices['current_price'] is not None else 'N/A'
+        change = prices['price_change_percentage_24h']
+        if change is not None:
+            symbol = '+' if change >= 0 else '-'
+            change = f"{symbol}{abs(change):.1f}"
+        else:
+            change = 'N/A'
+        ath = format_number(prices['ath']) if prices['ath'] is not None else 'N/A'
+        ath_change = prices['ath_change_percentage']
+        ath_change = 'N/A' if ath_change is None else f'{ath_change:.0f}'
+        table.add_row([coin_id, price, f'{change}%', f'{market_cap}', ath, f'{ath_change}%'])
 
-            # Increment the counter
-            num_coins += 1
+        # Increment the counter
+        num_coins += 1
 
     # Check if any coins were added to the table
     if num_coins == 0:
@@ -227,9 +208,6 @@ async def search_coins(ctx, query: str):
     else:
         # Send the table
         await ctx.edit(content=f'```\n{table}\n```')
-
-
-
 
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx):
@@ -249,49 +227,32 @@ async def coins(ctx):
         # Fetch the current prices for all favorite coins
         prices = await get_prices(favorites[user_id])
 
-        # Create a table with headers
-        table = PrettyTable()
-        table.field_names = ["Coin", "Price", "Δ 24h", "Market Cap", "ATH", "Δ ATH"]
-        table.align["Price"] = "r"
-        table.align["Δ 24h"] = "r"
-        table.align["Coin"] = "l"
-        table.align["Market Cap"] = "r"
-        table.align["ATH"] = "r"
-        table.align["Δ ATH"] = "r"
-
-        # Create a list of coins with their data
-        coins_data = []
-        for coin, data in prices.items():
-            price = data['current_price']
-            change = round(data['price_change_percentage_24h'],1)
-            cap = int(data['market_cap'])
-            if cap == 0: 
-                if 'fully_diluted_valuation' in data and data['fully_diluted_valuation'] is not None:
-                    cap = int(data['fully_diluted_valuation'])
-                else:
-                    cap = 0
-            mc_rank = data['market_cap_rank']
-            if mc_rank is None:
-                mc_rank = 'N/A'
-            ath = format_number(data['ath'])
-            off_ath = int(data['ath_change_percentage'])
-            price = format_number(price)
-            coins_data.append([coin, price, change, cap, ath, off_ath])
-
-        # Sort the coins by market cap in descending order
-        coins_data.sort(key=lambda x: x[3], reverse=True)
-
-        # Add a row for each coin
-        for coin_data in coins_data:
-            table.add_row([coin_data[0], f"{coin_data[1]}", f"+{coin_data[2]}%" if coin_data[2] >= 0 else f"{coin_data[2]}%", f"{format_number(coin_data[3])}", coin_data[4], f"{coin_data[5]}%"])
-
-        # Edit the response to send the actual content
-        await ctx.edit(content=f'```\n{table}\n```')
+        # Display the coins
+        await display_coins(ctx, prices)
     else:
         # Edit the response to send the actual content
         await ctx.edit(content="You don't have any favorite coins saved.")
 
+@bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
+async def search_coins(ctx, query: str):
+    # Defer the response
+    await ctx.defer()
 
+    # Create an aiohttp.ClientSession
+    async with aiohttp.ClientSession() as session:
+        # Search for coins that match the query using the CoinGecko API
+        async with session.get(f'https://api.coingecko.com/api/v3/search?query={query}') as response:
+            matching_coins = await response.json()
+
+    # Get the IDs of the top 10 matching coins
+    matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
+   
+
+    # Fetch the prices, market cap, 24-hour change, ath, and ath_change_percentage for the matching coins
+    prices = await get_prices(matching_ids)
+
+    # Display the coins
+    await display_coins(ctx, prices, display_id=True)
 
 async def get_bitcoin_price():
     rand = random.randint(0, 21)
