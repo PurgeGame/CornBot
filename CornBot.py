@@ -206,6 +206,64 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
     prices = await get_prices(matching_ids)
     await display_coins(ctx, prices, display_id=True)
 
+def get_emoji(action,coin):
+    buy_emojis = ['<a:pepelaugh:922704567332917258> ', '<a:buybuybuy:920335813294841966> ', '<:dogeGIGA:839205306042286151> ']
+    sell_emojis = ['<:harold:826533474886221904> ', '<:bonk:1056641594255736832>', '<:shrug:1203958281094299678>','<:cramer:1062188133711626301> ']
+    bitcoin_emojis = [ '🌽', '<:SAYLOR:981349800110850048>','<:fink:1166095456774926456>']
+    if action == 'BUY'  or action == 'LONG':
+        # If the action is to buy, select a positive emoji
+        if coin == 'bitcoin':
+            return random.choice(bitcoin_emojis)
+        else:
+            return random.choice(buy_emojis)
+    elif action == 'SHORT':
+        # If the action is to sell, select a negative emoji
+        return random.choice(sell_emojis)
+
+
+@bot.slash_command(name="ofa", description="Suggests to buy or sell a random coin from your favorites or the default coins")
+async def ofa(ctx):
+    await ctx.defer()
+    user_id = str(ctx.author.id)
+    favorites = {}
+    if os.path.exists('favorites.json'):
+        with open('favorites.json', 'r') as f:
+            favorites = json.load(f)
+    coins = []
+    if random.random() < .5:
+        # Load every coin from anyone's favorites
+        for user_favorites in favorites.values():
+            coins += user_favorites
+    else:
+        if user_id in favorites and favorites[user_id]:
+            # Use the user's favorite coins if they have any
+            coins = favorites[user_id]
+    # Add Bitcoin, Ethereum, and Solana if they are not already in the list
+    for coin in ['bitcoin', 'ethereum', 'solana']:
+        if coin not in coins:
+            coins.append(coin)
+    # Pick a random coin
+    coin = random.choice(coins)
+    # Get the price of the coin
+    prices = await get_prices([coin])
+    price = prices[coin]['current_price']
+    rand = random.random()
+    if rand < .5:
+        leverage = 0
+    elif rand >.995:
+        await ctx.edit(content=f'Official Financial Advice: Play Purge Game')
+        return
+    else:
+        leverage = random.choice([6.9, 20, 42, 69, 100, 420])
+    # Decide whether to buy or sell
+    action = 'BUY' if random.random() < .7 and leverage == 0 else 'LONG' if random.random() < .7 and leverage > 0 else 'SHORT'
+    emoji = get_emoji(action,coin)
+    # Send the suggestion
+    if leverage > 0:
+        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, NOW at ${price}, with {leverage}x leverage. {emoji}')
+    else:
+        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, NOW at ${price}. {emoji}')
+
 async def get_bitcoin_price():
     rand = random.randint(0, 21)
     global change_btc
@@ -241,9 +299,11 @@ async def save_favorites(favorites):
     with open('favorites.json', 'w') as f:
         json.dump(favorites, f)
 
-async def manage_coins(ctx, user_id, coins, action):
+
+async def manage_coins(ctx, user_id, coins, action, list_name=None):
     favorites = await load_favorites()
-    user_favorites = favorites.get(user_id, [])
+    key = f'{list_name}_{ctx.guild.id}' if list_name else user_id  # use the server ID and list name as the key if a list name is provided
+    user_favorites = favorites.get(key, [])
     if action == 'add':
         added_coins = [coin for coin in coins if coin not in user_favorites]
         user_favorites.extend(added_coins)
@@ -253,9 +313,10 @@ async def manage_coins(ctx, user_id, coins, action):
         user_favorites = [coin for coin in user_favorites if coin not in removed_coins]
         message = f"Removed coins from your favorites: {', '.join(removed_coins)}"
     if user_favorites:  
-        favorites[user_id] = user_favorites
+        favorites[key] = user_favorites
     else:  
-        del favorites[user_id]  # remove the key-value pair from the dictionary
+        if key in favorites:  # make sure the key exists before deleting it
+            del favorites[key]  # remove the key-value pair from the dictionary
     await save_favorites(favorites)
     return message
 
@@ -263,7 +324,7 @@ async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_
     await ctx.defer(ephemeral=True)
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) for coin in coins]
-    message = await manage_coins(ctx, user_id, coins, action)
+    message = await manage_coins(ctx, user_id, coins, action, list_name)
     if list_name:
         message = message.replace("Added coins to your favorites", "Added coins").replace("Removed coins from your favorites", "Removed coins")
         message += f" to the list {list_name}" if action == 'add' else f" from the list {list_name}"
