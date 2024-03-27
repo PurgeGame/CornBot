@@ -204,8 +204,13 @@ async def coins(ctx, list_name: Optional[str] = None):
 
     # Check if a list name was provided
     if list_name:
-        # Use the coins from the provided list if it exists
-        coins = favorites.get(list_name, [])
+        # Check if the list name exists in the favorites
+        if list_name in favorites:
+            # Use the coins from the provided list
+            coins = favorites[list_name]
+        else:
+            await ctx.edit(content=f"The list '{list_name}' does not exist.")
+            return
     elif user_id in favorites and favorites[user_id]:
         # Use the user's favorite coins if no list was provided
         coins = favorites[user_id]
@@ -292,7 +297,11 @@ async def manage_coins(ctx, user_id, coins, action):
         user_favorites = [coin for coin in user_favorites if coin not in removed_coins]
         message = f"Removed coins from your favorites: {', '.join(removed_coins)}"
 
-    favorites[user_id] = user_favorites
+    if user_favorites:  # if the list is not empty
+        favorites[user_id] = user_favorites
+    else:  # if the list is empty
+        del favorites[user_id]  # remove the key-value pair from the dictionary
+
     await save_favorites(favorites)
     return message
 
@@ -300,6 +309,7 @@ async def manage_coins(ctx, user_id, coins, action):
 async def add(ctx, coins: str):
     await ctx.defer()
     coins = [coin.strip() for coin in coins.split(',')]
+    coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, str(ctx.author.id), coins, 'add')
     await ctx.edit(content=message)
 
@@ -307,6 +317,7 @@ async def add(ctx, coins: str):
 async def remove(ctx, coins: str):
     await ctx.defer()
     coins = [coin.strip() for coin in coins.split(',')]
+    coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, str(ctx.author.id), coins, 'remove')
     await ctx.edit(content=message)
 
@@ -314,6 +325,7 @@ async def remove(ctx, coins: str):
 async def addlist(ctx, list_name: str, coins: str):
     await ctx.defer()
     coins = [coin.strip() for coin in coins.split(',')]
+    coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, list_name, coins, 'add')
     await ctx.edit(content=message)
 
@@ -321,6 +333,7 @@ async def addlist(ctx, list_name: str, coins: str):
 async def removefromlist(ctx, list_name: str, coins: str):
     await ctx.defer()
     coins = [coin.strip() for coin in coins.split(',')]
+    coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, list_name, coins, 'remove')
     await ctx.edit(content=message)
 
