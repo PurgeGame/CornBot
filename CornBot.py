@@ -154,7 +154,7 @@ def format_number(num):
             return round_sig(num, 2)
         
 
-async def display_coins(ctx, coins_data, display_id=False):
+async def display_coins(ctx, coins_data, display_id=False, list_name=None):
     # Create a table
     table = PrettyTable()
     table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Rank', 'ATH', 'Δ ATH']
@@ -197,7 +197,10 @@ async def display_coins(ctx, coins_data, display_id=False):
         await ctx.edit(content='No coins with a market cap of $1 million or more were found.')
     else:
         # Send the table
-        await ctx.edit(content=f'```\n{table}\n```')
+        message = f'```\n{table}\n```'
+        if list_name:
+            message = f"Displaying coins from the list '{list_name}':\n" + message
+        await ctx.edit(content=message)
 
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx, list_name: Optional[str] = None):
@@ -233,10 +236,12 @@ async def coins(ctx, list_name: Optional[str] = None):
     prices = await get_prices(coins)
 
     # Display the coins
-    await display_coins(ctx, prices)
+    await display_coins(ctx, prices, list_name=list_name)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
-async def search_coins(ctx, query: str):
+async def search_coins(ctx, query: str, limit: Optional[int] = 10):
+    if limit > 50:
+        limit = 50
     # Defer the response
     await ctx.defer()
 
@@ -247,7 +252,7 @@ async def search_coins(ctx, query: str):
             matching_coins = await response.json()
 
     # Get the IDs of the top 10 matching coins
-    matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
+    matching_ids = [coin['id'] for coin in matching_coins['coins'][:limit]]
    
 
     # Fetch the prices, market cap, 24-hour change, ath, and ath_change_percentage for the matching coins
@@ -315,41 +320,31 @@ async def manage_coins(ctx, user_id, coins, action):
     await save_favorites(favorites)
     return message
 
-@bot.slash_command(name="add", description="Add coins to your favorites")
-async def add(ctx, coins: str):
+async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_name=None):
     await ctx.defer()
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) for coin in coins]
-    message = await manage_coins(ctx, str(ctx.author.id), coins, 'add')
+    message = await manage_coins(ctx, user_id, coins, action)
+    if list_name:
+        message = message.replace("Added coins to your favorites", "Added coins").replace("Removed coins from your favorites", "Removed coins")
+        message += f" to the list {list_name}" if action == 'add' else f" from the list {list_name}"
     await ctx.edit(content=message)
+
+@bot.slash_command(name="add", description="Add coins to your favorites")
+async def add(ctx, coins: str):
+    await manage_coins_command(ctx, coins, str(ctx.author.id), 'add')
 
 @bot.slash_command(name="remove", description="Remove coins from your favorites")
 async def remove(ctx, coins: str):
-    await ctx.defer()
-    coins = [coin.strip() for coin in coins.split(',')]
-    coins = [await check_coin(coin) for coin in coins]
-    message = await manage_coins(ctx, str(ctx.author.id), coins, 'remove')
-    await ctx.edit(content=message)
+    await manage_coins_command(ctx, coins, str(ctx.author.id), 'remove')
 
 @bot.slash_command(name="addlist", description="Add a coin to the list")
 async def addlist(ctx, list_name: str, coins: str):
-    await ctx.defer()
-    coins = [coin.strip() for coin in coins.split(',')]
-    coins = [await check_coin(coin) for coin in coins]
-    message = await manage_coins(ctx, list_name, coins, 'add')
-    message = message.replace("Added coins to your favorites", "Added coins")
-    message += f" to the list {list_name}"
-    await ctx.edit(content=message)
+    await manage_coins_command(ctx, coins, list_name, 'add', list_name)
 
 @bot.slash_command(name="removelist", description="Remove a coin from a list")
 async def removefromlist(ctx, list_name: str, coins: str):
-    await ctx.defer()
-    coins = [coin.strip() for coin in coins.split(',')]
-    coins = [await check_coin(coin) for coin in coins]
-    message = await manage_coins(ctx, list_name, coins, 'remove')
-    message = message.replace("Removed coins from your favorites", "Removed coins")
-    message += f" from the list {list_name}"
-    await ctx.edit(content=message)
+    await manage_coins_command(ctx, coins, list_name, 'remove', list_name)
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
 async def add_coin(ctx, coin_id: str):
