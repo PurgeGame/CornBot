@@ -74,7 +74,6 @@ async def get_coin_with_lowest_market_cap_rank(coin_ids):
     lowest_rank_id = min(data, key=lambda coin: coin['market_cap_rank'] if coin['market_cap_rank'] is not None else float('inf'))['id']
     return lowest_rank_id
 
-
 @bot.slash_command(name="price", description="Show the current price for a coin")
 async def price(ctx, coins: str):
     await ctx.defer()
@@ -124,12 +123,10 @@ def format_number(num):
             return round_sig(num, 2)
         
 async def display_coins(ctx, coins_data, display_id=False, list_name=None):
-    # Create a table
     table = PrettyTable()
     table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Rank', 'ATH', 'Δ ATH']
     table.align = 'r' 
     table.align['ID' if display_id else 'Name'] = 'l' 
-    # Filter coins with market cap >= 1 million
     filtered_coins = {coin_id: coin_data for coin_id, coin_data in coins_data.items()}# if coin_data['market_cap'] and coin_data['market_cap'] >= 1000000}
 
     for coin_id, prices in filtered_coins.items():
@@ -141,11 +138,9 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
         mc_rank = prices['market_cap_rank'] if prices['market_cap_rank'] else 'N/A'
         table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
         
-    # Check if any coins were added to the table
     if not filtered_coins:
         await ctx.edit(content='No coins with a market cap of $1 million or more were found.')
     else:
-        # Send the table
         message = f'```\n{table}\n```'
         if list_name:
             message = f"Displaying coins from the list '{list_name}':\n" + message
@@ -175,19 +170,12 @@ async def coins(ctx, list_name: Optional[str] = None):
     await display_coins(ctx, prices, list_name=list_name)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
-async def search_coins(ctx, query: str, limit: Optional[int] = 10):
-    if limit > 50:
-        limit = 50
-    # Defer the response
+async def search_coins(ctx, query: str):
     await ctx.defer()
     url = f'https://api.coingecko.com/api/v3/search?query={query}'
     matching_coins = await fetch_data_from_api(url)
-    # Get the IDs of the top 10 matching coins
-    matching_ids = [coin['id'] for coin in matching_coins['coins'][:limit]]
-    # Fetch the prices, market cap, 24-hour change, ath, and ath_change_percentage for the matching coins
+    matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
     prices = await get_prices(matching_ids)
-
-    # Display the coins
     await display_coins(ctx, prices, display_id=True)
 
 async def get_bitcoin_price():
@@ -209,7 +197,6 @@ async def get_bitcoin_price():
                     data = await response.json()
                     price_btc = data['data']['amount']
             price_btc = f'{int(float(price_btc)):,}'
-        
     except:
         price_btc = .999
         change_btc = 0
@@ -229,7 +216,6 @@ async def save_favorites(favorites):
 async def manage_coins(ctx, user_id, coins, action):
     favorites = await load_favorites()
     user_favorites = favorites.get(user_id, [])
-
     if action == 'add':
         added_coins = [coin for coin in coins if coin not in user_favorites]
         user_favorites.extend(added_coins)
@@ -238,12 +224,10 @@ async def manage_coins(ctx, user_id, coins, action):
         removed_coins = [coin for coin in coins if coin in user_favorites]
         user_favorites = [coin for coin in user_favorites if coin not in removed_coins]
         message = f"Removed coins from your favorites: {', '.join(removed_coins)}"
-
-    if user_favorites:  # if the list is not empty
+    if user_favorites:  
         favorites[user_id] = user_favorites
-    else:  # if the list is empty
+    else:  
         del favorites[user_id]  # remove the key-value pair from the dictionary
-
     await save_favorites(favorites)
     return message
 
@@ -282,22 +266,16 @@ async def remove(ctx, coins: str, list_name: str = None):
 
 @bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
 async def add_coin(ctx, coin_id: str):
-    # Defer the response
     await ctx.defer()
-
     user_id = str(ctx.author.id)
-
     # Check if the coin_id exists in coins
     with open('coins.json', 'r', encoding='utf-8') as f:
         coins = json.load(f)
     if any(coin['id'] == coin_id for coin in coins):
         # Add the coin to the favorites if it's not already there
         message = await manage_coins(ctx, user_id, [coin_id], 'add')
-
-        # Edit the response to send the actual content
         await ctx.edit(content=message)
     else:
-        # Edit the response to send the actual content
         await ctx.edit(content="The coin you provided is not valid.")
 
 @bot.event
@@ -307,7 +285,6 @@ async def on_ready():
 
 @tasks.loop(minutes = 1)  # Create a task that runs every minute
 async def update_activity():
-
     price_btc, change = await get_bitcoin_price()
     if price_btc == .999:
         return
