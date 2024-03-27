@@ -311,15 +311,17 @@ async def remove(ctx, coins: str):
     await ctx.edit(content=message)
 
 @bot.slash_command(name="addlist", description="Add a coin to the list")
-async def addlist(ctx, list_name: str, coin: str):
+async def addlist(ctx, list_name: str, coins: str):
     await ctx.defer()
-    message = await manage_coins(ctx, list_name, [coin], 'add')
+    coins = [coin.strip() for coin in coins.split(',')]
+    message = await manage_coins(ctx, list_name, coins, 'add')
     await ctx.edit(content=message)
 
 @bot.slash_command(name="removelist", description="Remove a coin from a list")
-async def removefromlist(ctx, list_name: str, coin: str):
+async def removefromlist(ctx, list_name: str, coins: str):
     await ctx.defer()
-    message = await manage_coins(ctx, list_name, [coin], 'remove')
+    coins = [coin.strip() for coin in coins.split(',')]
+    message = await manage_coins(ctx, list_name, coins, 'remove')
     await ctx.edit(content=message)
 
 @bot.event
