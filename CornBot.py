@@ -31,7 +31,7 @@ async def fetch_data_from_api(url):
                         data = await response.json()
                         return data
                     else:
-                        await asyncio.sleep(5)  # Wait for 5 seconds before the next try
+                        await asyncio.sleep(2)  # Wait for 2 seconds before the next try
             else:
                 async with session.get(url, headers=headers) as response:  # Second try with headers
                     if response.status == 200:
