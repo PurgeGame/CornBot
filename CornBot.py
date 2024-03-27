@@ -123,11 +123,17 @@ def format_number(num):
             return round_sig(num, 2)
         
 async def display_coins(ctx, coins_data, display_id=False, list_name=None):
+    # Create a table
     table = PrettyTable()
     table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Rank', 'ATH', 'Δ ATH']
-    table.align = 'r' 
-    table.align['ID' if display_id else 'Name'] = 'l' 
+    table.align = 'r'  # right-align data
+    table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
+
+    # Filter coins with market cap >= 1 million
     filtered_coins = {coin_id: coin_data for coin_id, coin_data in coins_data.items()}# if coin_data['market_cap'] and coin_data['market_cap'] >= 1000000}
+
+    messages = []
+    current_message = ''
 
     for coin_id, prices in filtered_coins.items():
         market_cap = format_number(prices['market_cap'])  
@@ -136,15 +142,37 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
         ath = format_number(prices['ath']) if prices['ath'] else 'N/A'
         ath_change = prices['ath_change_percentage'] if prices['ath_change_percentage'] else 'N/A'
         mc_rank = prices['market_cap_rank'] if prices['market_cap_rank'] else 'N/A'
+
         table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
-        
+
+        # Check if the table fits within the limit
+        table_str = str(table)
+        if len(table_str) > 2000:
+            # If it doesn't fit, remove the last row and add the table to the messages
+            table.del_row(-1)
+            messages.append(current_message + f'```\n{table}\n```')
+            # Create a new table with the row that didn't fit
+            table = PrettyTable()
+            table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Rank', 'ATH', 'Δ ATH']
+            table.align = 'r'  # right-align data
+            table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
+            table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
+            current_message = ''
+
+    # Add the last table to the messages
+    messages.append(current_message + f'```\n{table}\n```')
+
+    # Check if any coins were added to the table
     if not filtered_coins:
         await ctx.edit(content='No coins with a market cap of $1 million or more were found.')
     else:
-        message = f'```\n{table}\n```'
+        # Send the tables
         if list_name:
-            message = f"Displaying coins from the list '{list_name}':\n" + message
-        await ctx.edit(content=message)
+            messages[0] = f"Displaying coins from the list '{list_name}':\n" + messages[0]
+
+        await ctx.edit(content=messages[0])
+        for message in messages[1:]:
+            await ctx.send(content=message)
 
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx, list_name: Optional[str] = None):
@@ -170,11 +198,11 @@ async def coins(ctx, list_name: Optional[str] = None):
     await display_coins(ctx, prices, list_name=list_name)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
-async def search_coins(ctx, query: str):
+async def search_coins(ctx, query: str, num: Optional[int] = 10):
     await ctx.defer()
     url = f'https://api.coingecko.com/api/v3/search?query={query}'
     matching_coins = await fetch_data_from_api(url)
-    matching_ids = [coin['id'] for coin in matching_coins['coins'][:10]]
+    matching_ids = [coin['id'] for coin in matching_coins['coins'][num]]
     prices = await get_prices(matching_ids)
     await display_coins(ctx, prices, display_id=True)
 
