@@ -474,8 +474,8 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         target_value = float(target)
 
     # Fetch the current price of the coin
-    coin_data = await get_prices([coin])
-    current_price = coin_data[coin]['current_price']
+    coin_data = await get_prices([coin_id])
+    current_price = coin_data[coin_id]['current_price']
 
     # Determine the condition based on the current price and target value
     if alert_type == 'price':
@@ -489,7 +489,7 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
     cooldown_seconds = cooldown * 3600 if cooldown is not None else None
 
     new_alert = {
-        'coin': coin,
+        'coin': coin_id,  # Use coin_id instead of coin
         'alert_type': alert_type,
         'condition': condition,
         'target': target_value,
@@ -508,7 +508,7 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         cooldown_message = f" Cooldown: {cooldown_in_hours:.0f} hours."
 
     percentage_symbol = "%" if alert_type == 'change' else ""
-    await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {format_number(target_value)}{percentage_symbol}.{cooldown_message}")
+    await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin_id} {condition} {format_number(target_value)}{percentage_symbol}.{cooldown_message}")
 
 
 @bot.slash_command(name="clear", description="Clear all alerts and/or favorites for a user")
