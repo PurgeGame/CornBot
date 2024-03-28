@@ -71,7 +71,6 @@ async def fetch_data_from_api(url):
                 async with session.get(url) as response:  # First try without headers
                     if response.status == 200:
                         data = await response.json()
-                        print(data)
                         return data
                     else:
                         await asyncio.sleep(2)  # Wait for 2 seconds before the next try
@@ -79,7 +78,6 @@ async def fetch_data_from_api(url):
                 async with session.get(url, headers=headers) as response:  # Second try with headers
                     if response.status == 200:
                         data = await response.json()
-                        print(data)
                         return data
     return {}
 
@@ -325,7 +323,6 @@ async def get_bitcoin_price():
     except:
         data = {}
         coingecko_success = False
-        print("wtf")
 
     if 'bitcoin' not in data:
         async with aiohttp.ClientSession() as session:
@@ -343,7 +340,6 @@ async def get_bitcoin_price():
     if coingecko_success and 'usd_24h_change' in data['bitcoin']: 
         
         change_btc = data['bitcoin']['usd_24h_change']  # Update the global variable only when CoinGecko API is successful and the key exists
-        print(change_btc)
 
     price_btc = data['bitcoin']['usd']
 
