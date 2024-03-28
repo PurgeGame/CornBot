@@ -505,8 +505,9 @@ async def alert(ctx, coin: str, alert_type: str, condition: str, target: float, 
         'current_price': None,
         'usd_24h_change': None,
         'cooldown': cooldown_seconds,
-        'last_triggered': 0
-    }
+        'last_triggered': 0,
+        'channel_id': str(ctx.channel.id)  # Save the channel ID
+    }   
 
     alerts[server_id][user_id][coin].append(new_alert)
 
@@ -550,12 +551,17 @@ async def delete_alert(ctx, coin: str, alert_id: int):
     await ctx.edit(content=f"Alert {alert_id} for {coin} has been deleted.", ephemeral=True)
 
 async def check_alerts():
-    # Load the alerts from the JSON file
     try:
         with open('alerts.json', 'r') as f:
             alerts = json.load(f)
     except FileNotFoundError:
         alerts = {}
+
+    try:
+        with open('spam_channels.json', 'r') as f:
+            spam_channels = json.load(f)
+    except FileNotFoundError:
+        spam_channels = {}
 
     for server_id, server_alerts in alerts.items():
         for user_id, user_alerts in server_alerts.items():
@@ -566,8 +572,8 @@ async def check_alerts():
 
                     current_price = alert['current_price']
                     percentage_change = alert['usd_24h_change']
-
-                    channel = bot.get_channel(1221355803534032899)  # Get the channel ID
+                    channel_id = spam_channels.get(server_id, alert['channel_id'])
+                    channel = await bot.fetch_channel(int(channel_id))
 
                     if alert['alert_type'] == 'price':
                         if alert['condition'] == '>' and current_price > alert['target']:
