@@ -50,7 +50,7 @@ bot = commands.Bot(command_prefix='!', intents=intents, context_class=CustomCont
 token = os.environ.get("DISCORD_BOT_SECRET")
 GECKO_API = os.environ.get("GECKO_API")
 global change_btc
-change_btc = None
+change_btc = 0
 
 
 
@@ -71,6 +71,7 @@ async def fetch_data_from_api(url):
                 async with session.get(url) as response:  # First try without headers
                     if response.status == 200:
                         data = await response.json()
+                        print(data)
                         return data
                     else:
                         await asyncio.sleep(2)  # Wait for 2 seconds before the next try
@@ -78,6 +79,7 @@ async def fetch_data_from_api(url):
                 async with session.get(url, headers=headers) as response:  # Second try with headers
                     if response.status == 200:
                         data = await response.json()
+                        print(data)
                         return data
     return {}
 
@@ -306,11 +308,15 @@ async def ofa(ctx):
         await ctx.edit(content=f'Official Financial Advice: {action} {coin}, NOW at ${price}. {emoji}')
 
 async def get_bitcoin_price():
+    global change_btc  # Declare the variable as global so we can modify it
+
     # Load the existing alerts from the file
     existing_alerts = load_json_file('alerts.json')
 
     # Get the list of unique coins
     coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict) and 'coin' in alert]))
+    coins.append('bitcoin')  # Ensure 'bitcoin' is always included
+    coins = list(set(coins))  # Remove duplicates
 
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(coins)}&vs_currencies=usd&include_24hr_change=true"
     coingecko_success = True
@@ -319,27 +325,30 @@ async def get_bitcoin_price():
     except:
         data = {}
         coingecko_success = False
+        print("wtf")
 
     if 'bitcoin' not in data:
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json') as response:
                     data_btc = await response.json()
-                    data['bitcoin'] = {'usd': int(data_btc['bpi']['USD']['rate_float']), 'usd_24h_change': 0}
+                    data['bitcoin'] = {'usd': int(data_btc['bpi']['USD']['rate_float'])}
             except:
                 try:
                     async with session.get('https://api.coinbase.com/v2/prices/BTC-USD/spot') as response:
                         data_btc = await response.json()
-                        data['bitcoin'] = {'usd': int(float(data_btc['data']['amount'])), 'usd_24h_change': 0}
+                        data['bitcoin'] = {'usd': int(float(data_btc['data']['amount']))}
                 except:
-                    data['bitcoin'] = {'usd': .999, 'usd_24h_change': 0}
-
-    if coingecko_success: await update_alerts_with_coin_data(data)
+                    data['bitcoin'] = {'usd': .999}
+    if coingecko_success and 'usd_24h_change' in data['bitcoin']: 
+        
+        change_btc = data['bitcoin']['usd_24h_change']  # Update the global variable only when CoinGecko API is successful and the key exists
+        print(change_btc)
 
     price_btc = data['bitcoin']['usd']
-    change_btc = data['bitcoin']['usd_24h_change']
 
     return (price_btc, change_btc, coingecko_success)
+
 
 async def update_alerts_with_coin_data(data):
     alerts = load_json_file('alerts.json')
@@ -555,7 +564,7 @@ async def clear_data(ctx, data_type: str = None):
         await ctx.edit(content=f"{alert_message}\n{favorite_message}")
     else:
         await ctx.edit(content=alert_message if alert_message else favorite_message)
-        
+
 async def check_alerts():
     alerts = load_json_file('alerts.json')
     spam_channels = load_json_file('spam_channels.json')
