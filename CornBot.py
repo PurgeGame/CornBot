@@ -310,7 +310,7 @@ async def get_bitcoin_price():
     existing_alerts = load_json_file('alerts.json')
 
     # Get the list of unique coins
-    coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user]))
+    coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict)]))
 
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(coins)}&vs_currencies=usd&include_24hr_change=true"
     coingecko_success = True
@@ -325,12 +325,12 @@ async def get_bitcoin_price():
             try:
                 async with session.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json') as response:
                     data_btc = await response.json()
-                    data['bitcoin'] = {'usd': data_btc['bpi']['USD']['rate_float'], 'usd_24h_change': 0}
+                    data['bitcoin'] = {'usd': int(data_btc['bpi']['USD']['rate_float']), 'usd_24h_change': 0}
             except:
                 try:
                     async with session.get('https://api.coinbase.com/v2/prices/BTC-USD/spot') as response:
                         data_btc = await response.json()
-                        data['bitcoin'] = {'usd': float(data_btc['data']['amount']), 'usd_24h_change': 0}
+                        data['bitcoin'] = {'usd': int(float(data_btc['data']['amount'])), 'usd_24h_change': 0}
                 except:
                     data['bitcoin'] = {'usd': .999, 'usd_24h_change': 0}
 
@@ -433,22 +433,28 @@ async def add_coin(ctx, coin_id: str):
     else:
         await ctx.edit(content="The coin you provided is not valid.")
 
-def save_alerts(alerts, user_id, server_id):
+def save_alerts(alerts, user_id, server_id, delete=False):
     # Load the existing alerts from the file
     existing_alerts = load_json_file('alerts.json')
 
     # Update the alerts for the specified user in the specified server
     if server_id not in existing_alerts:
         existing_alerts[server_id] = {}
-    if user_id not in existing_alerts[server_id]:
-        existing_alerts[server_id][user_id] = []
 
-    # Merge the new alerts with the existing ones
-    existing_alerts[server_id][user_id].extend(alerts)
+    if delete:
+        # Delete the user's alerts
+        if user_id in existing_alerts[server_id]:
+            del existing_alerts[server_id][user_id]
+            # If no other users in the server, remove the server data too
+            if not existing_alerts[server_id]:
+                del existing_alerts[server_id]
+    else:
+        # Replace the user's alerts
+        existing_alerts[server_id][user_id] = alerts
 
     # Write the updated alerts back to the file
     with open('alerts.json', 'w') as f:
-        json.dump(existing_alerts, f)
+        f.write(json.dumps(existing_alerts))
 
     # Return the updated alerts
     return existing_alerts
@@ -526,7 +532,10 @@ async def clear_data(ctx, data_type: str = None):
         alerts = load_json_file('alerts.json')
         if server_id in alerts and user_id in alerts[server_id]:
             del alerts[server_id][user_id]
-            save_alerts(alerts, user_id, server_id)  # Include the server ID in the save_alerts function call
+            # If no other users in the server, remove the server data too
+            if not alerts[server_id]:
+                del alerts[server_id]
+            save_alerts(alerts, user_id, server_id, delete=True)  # Include the server ID in the save_alerts function call
             alert_message = "All alerts have been cleared."
         else:
             alert_message = "No alerts found."
@@ -535,7 +544,10 @@ async def clear_data(ctx, data_type: str = None):
         favorites = load_json_file('favorites.json')
         if server_id in favorites and user_id in favorites[server_id]:
             del favorites[server_id][user_id]
-            save_favorites(favorites, user_id, server_id)  # Include the server ID in the save_favorites function call
+            # If no other users in the server, remove the server data too
+            if not favorites[server_id]:
+                del favorites[server_id]
+            await save_favorites(favorites, user_id, server_id, delete=True)  # Include the server ID in the save_favorites function call
             favorite_message = "All favorites have been cleared."
         else:
             favorite_message = "No favorites found."
@@ -593,7 +605,7 @@ async def check_alerts():
 @bot.slash_command(name="set_spam_channel", description="Set the current channel as the server's spam channel")
 @commands.has_permissions(manage_channels=True)
 async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_messages: bool = False):
-    await ctx.defer()
+    ctx.defer(ephemeral=True)
     server_id = str(ctx.guild.id)  # Get the server ID
     channel_id = str(ctx.channel.id)  # Get the channel ID
 

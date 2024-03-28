@@ -1,1 +1,1 @@
-{"1221355803534032896": {"496870117464866816": [{"coin": "bitcoin", "alert_type": "price", "condition": "<", "target": 70000.0, "current_price": 71351, "usd_24h_change": 2.232031448980606, "cooldown": null, "last_triggered": 0, "channel_id": "1222855216119152690"}]}}
+{"1221355803534032896": {"496870117464866816": [{"coin": "bitcoin", "alert_type": "price", "condition": "<", "target": 71000.0, "current_price": 71207, "usd_24h_change": null, "cooldown": null, "last_triggered": 0, "channel_id": "1222855216119152690"}]}}
