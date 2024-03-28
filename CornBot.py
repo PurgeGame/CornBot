@@ -539,12 +539,13 @@ async def clear_data(ctx, data_type: str = None):
 
     if data_type in ['favorites', None]:
         favorites = load_json_file('favorites.json')
-        if server_id in favorites and user_id in favorites[server_id]:
-            del favorites[server_id][user_id]
-            # If no other users in the server, remove the server data too
-            if not favorites[server_id]:
-                del favorites[server_id]
-            await save_favorites(favorites, user_id, server_id)  # No need for delete=True
+        if user_id in favorites:
+            del favorites[user_id]  # Remove the user's favorites
+
+            # Write the updated favorites back to the file
+            with open('favorites.json', 'w') as f:
+                f.write(json.dumps(favorites))
+
             favorite_message = "All favorites have been cleared."
         else:
             favorite_message = "No favorites found."
@@ -554,7 +555,7 @@ async def clear_data(ctx, data_type: str = None):
         await ctx.edit(content=f"{alert_message}\n{favorite_message}")
     else:
         await ctx.edit(content=alert_message if alert_message else favorite_message)
-
+        
 async def check_alerts():
     alerts = load_json_file('alerts.json')
     spam_channels = load_json_file('spam_channels.json')
