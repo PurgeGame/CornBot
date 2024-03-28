@@ -310,7 +310,7 @@ async def get_bitcoin_price():
     existing_alerts = load_json_file('alerts.json')
 
     # Get the list of unique coins
-    coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict)]))
+    coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict) and 'coin' in alert]))
 
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(coins)}&vs_currencies=usd&include_24hr_change=true"
     coingecko_success = True
@@ -346,14 +346,15 @@ async def update_alerts_with_coin_data(data):
 
     for server_id, server_alerts in alerts.items():
         for user_id, user_alerts in server_alerts.items():
-            for alert in user_alerts:
-                if alert['coin'] in data:
-                    alert['current_price'] = data[alert['coin']]['usd']
-                    alert['usd_24h_change'] = data[alert['coin']]['usd_24h_change']
+            for alert_list in user_alerts:
+                if alert_list:  # Check if the list is not empty
+                    alert = alert_list[0]  # Get the alert from the list
+                    if alert['coin'] in data:
+                        alert['current_price'] = data[alert['coin']]['usd']
+                        alert['usd_24h_change'] = data[alert['coin']]['usd_24h_change']
 
     with open('alerts.json', 'w') as f:
         json.dump(alerts, f)
-
 async def load_favorites():
     if os.path.exists('favorites.json'):
         with open('favorites.json', 'r') as f:
@@ -433,7 +434,7 @@ async def add_coin(ctx, coin_id: str):
     else:
         await ctx.edit(content="The coin you provided is not valid.")
 
-def save_alerts(alerts, user_id, server_id, delete=False):
+def save_alerts(alert, user_id, server_id, delete=False):
     # Load the existing alerts from the file
     existing_alerts = load_json_file('alerts.json')
 
@@ -441,16 +442,15 @@ def save_alerts(alerts, user_id, server_id, delete=False):
     if server_id not in existing_alerts:
         existing_alerts[server_id] = {}
 
+    if user_id not in existing_alerts[server_id]:
+        existing_alerts[server_id][user_id] = []
+
     if delete:
         # Delete the user's alerts
-        if user_id in existing_alerts[server_id]:
-            del existing_alerts[server_id][user_id]
-            # If no other users in the server, remove the server data too
-            if not existing_alerts[server_id]:
-                del existing_alerts[server_id]
+        existing_alerts[server_id][user_id] = [a for a in existing_alerts[server_id][user_id] if a['coin'] != alert['coin']]
     else:
-        # Replace the user's alerts
-        existing_alerts[server_id][user_id] = alerts
+        # Add the new alert
+        existing_alerts[server_id][user_id].append(alert)
 
     # Write the updated alerts back to the file
     with open('alerts.json', 'w') as f:
@@ -531,7 +531,7 @@ async def clear_data(ctx, data_type: str = None):
             # If no other users in the server, remove the server data too
             if not alerts[server_id]:
                 del alerts[server_id]
-            save_alerts(alerts, user_id, server_id, delete=True)  # Include the server ID in the save_alerts function call
+            save_alerts(alerts, user_id, server_id)  # No need for delete=True
             alert_message = "All alerts have been cleared."
         else:
             alert_message = "No alerts found."
@@ -543,7 +543,7 @@ async def clear_data(ctx, data_type: str = None):
             # If no other users in the server, remove the server data too
             if not favorites[server_id]:
                 del favorites[server_id]
-            await save_favorites(favorites, user_id, server_id, delete=True)  # Include the server ID in the save_favorites function call
+            await save_favorites(favorites, user_id, server_id)  # No need for delete=True
             favorite_message = "All favorites have been cleared."
         else:
             favorite_message = "No favorites found."
@@ -560,39 +560,41 @@ async def check_alerts():
 
     for server_id, server_alerts in alerts.items():
         for user_id, user_alerts in server_alerts.items():
-            for alert in user_alerts:  # Iterate over list
-                cooldown = alert.get('cooldown')  # Get the cooldown, or None if it's not present
-                last_triggered = alert.get('last_triggered', 0)  # Get the last_triggered, or 0 if it's not present
-                if cooldown is not None and time.time() - last_triggered < cooldown:
-                    continue
+            for alert_list in user_alerts.copy():  # Iterate over a copy of the list
+                if alert_list:  # Check if the list is not empty
+                    alert = alert_list[0]  # Get the alert from the list
+                    cooldown = alert.get('cooldown')  # Get the cooldown, or None if it's not present
+                    last_triggered = alert.get('last_triggered', 0)  # Get the last_triggered, or 0 if it's not present
+                    if cooldown is not None and time.time() - last_triggered < cooldown:
+                        continue
 
-                current_price = alert.get('current_price')
-                if current_price is None:
-                    continue  # Skip this iteration if current_price is None
+                    current_price = alert.get('current_price')
+                    if current_price is None:
+                        continue  # Skip this iteration if current_price is None
 
-                coin = alert['coin']
-                channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
-                channel = await bot.fetch_channel(int(channel_id))
+                    coin = alert['coin']
+                    channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
+                    channel = await bot.fetch_channel(int(channel_id))
 
-                if alert['alert_type'] == 'price':
-                    if (alert['condition'] == '>' and current_price > alert['target']) or \
-                       (alert['condition'] == '<' and current_price < alert['target']):
-                        await channel.send(f"<@{user_id}> {coin} price is now {alert['condition']} {alert['target']}")
-                        alert['last_triggered'] = time.time()
-                        if cooldown is None:
-                            user_alerts.remove(alert)  # Remove the alert
+                    if alert['alert_type'] == 'price':
+                        if (alert['condition'] == '>' and current_price > alert['target']) or \
+                        (alert['condition'] == '<' and current_price < alert['target']):
+                            await channel.send(f"<@{user_id}> {coin} price is now {alert['condition']} {alert['target']}")
+                            alert['last_triggered'] = time.time()
+                            if cooldown is None:
+                                user_alerts.remove(alert_list)  # Remove the alert
 
-                elif alert['alert_type'] == 'change':
-                    percentage_change = alert.get('usd_24h_change')
-                    if percentage_change is None:
-                        continue  # Skip this iteration if percentage_change is None
+                    elif alert['alert_type'] == 'change':
+                        percentage_change = alert.get('usd_24h_change')
+                        if percentage_change is None:
+                            continue  # Skip this iteration if percentage_change is None
 
-                    if abs(percentage_change) > alert['target']:
-                        change_type = "up" if percentage_change > 0 else "down"
-                        await channel.send(f"<@{user_id}> {coin} is {change_type} {abs(round(percentage_change,1))}% in the last 24h")
-                        alert['last_triggered'] = time.time()
-                        if cooldown is None:
-                            user_alerts.remove(alert)  # Remove the alert
+                        if abs(percentage_change) > alert['target']:
+                            change_type = "up" if percentage_change > 0 else "down"
+                            await channel.send(f"<@{user_id}> {coin} is {change_type} {abs(round(percentage_change,1))}% in the last 24h")
+                            alert['last_triggered'] = time.time()
+                            if cooldown is None:
+                                user_alerts.remove(alert_list)  # Remove the alert
 
     # Save the alerts
     with open('alerts.json', 'w') as f:
