@@ -310,7 +310,7 @@ async def get_bitcoin_price():
     existing_alerts = load_json_file('alerts.json')
 
     # Get the list of unique coins
-    coins = list(set([coin for server in existing_alerts.values() for user in server.values() for coin in user]))
+    coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user]))
 
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(coins)}&vs_currencies=usd&include_24hr_change=true"
     coingecko_success = True
@@ -472,7 +472,8 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         target_value = float(target)
 
     # Fetch the current price of the coin
-    current_price = await get_prices(coin)
+    coin_data = await get_prices([coin])
+    current_price = coin_data[coin]['current_price']
 
     # Determine the condition based on the current price and target value
     if alert_type == 'price':
@@ -541,9 +542,9 @@ async def clear_data(ctx, data_type: str = None):
 
     # Edit the original deferred message
     if alert_message and favorite_message:
-        await ctx.edit_original_message(content=f"{alert_message}\n{favorite_message}")
+        await ctx.edit(content=f"{alert_message}\n{favorite_message}")
     else:
-        await ctx.edit_original_message(content=alert_message if alert_message else favorite_message)
+        await ctx.edit(content=alert_message if alert_message else favorite_message)
 
 async def check_alerts():
     alerts = load_json_file('alerts.json')
@@ -562,7 +563,7 @@ async def check_alerts():
                     continue  # Skip this iteration if current_price is None
 
                 coin = alert['coin']
-                channel_id = spam_channels.get(server_id, alert['channel_id'])
+                channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
                 channel = await bot.fetch_channel(int(channel_id))
 
                 if alert['alert_type'] == 'price':
@@ -580,7 +581,7 @@ async def check_alerts():
 
                     if abs(percentage_change) > alert['target']:
                         change_type = "up" if percentage_change > 0 else "down"
-                        await channel.send(f"<@{user_id}> {coin} is {change_type} {abs(percentage_change)}% in the last 24h")
+                        await channel.send(f"<@{user_id}> {coin} is {change_type} {abs(round(percentage_change,1))}% in the last 24h")
                         alert['last_triggered'] = time.time()
                         if cooldown is None:
                             user_alerts.remove(alert)  # Remove the alert
