@@ -138,7 +138,7 @@ def is_number(n):
     except ValueError:
         return False
 
-def round_sig(num, sig_figs):
+def round_sig(num, sig_figs = 2):
     if num != 0:
         return round(num, -int(math.floor(math.log10(abs(num))) - (sig_figs - 1)))
     else:
@@ -507,17 +507,13 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
     alerts = [new_alert]
     save_alerts(alerts, user_id, server_id)  # Include the server ID in the save_alerts function call
 
-    if new_alert['cooldown'] is None:
-        if alert_type == 'change':
-            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}%. This is a one-time alert.")
-        else:
-            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}. This is a one-time alert.")
-    else:
+    cooldown_message = ""
+    if new_alert['cooldown'] is not None:
         cooldown_in_hours = new_alert['cooldown'] / 3600  # Convert seconds to hours
-        if alert_type == 'change':
-            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}%. Cooldown: {cooldown_in_hours:.0f} hours.")
-        else:
-            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}. Cooldown: {cooldown_in_hours:.0f} hours.")
+        cooldown_message = f" Cooldown: {cooldown_in_hours:.0f} hours."
+
+    percentage_symbol = "%" if alert_type == 'change' else ""
+    await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {format_number(target_value)}{percentage_symbol}.{cooldown_message}")
 
 @bot.slash_command(name="clear", description="Clear all alerts and/or favorites for a user")
 async def clear_data(ctx, data_type: str = None):
