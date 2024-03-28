@@ -1,5 +1,4 @@
 .env
 myenv/
-favorites.json
-alerts.json
-spam_channels.json
+*.json
+!coins.json
