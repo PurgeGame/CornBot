@@ -461,7 +461,7 @@ def save_alerts(alerts, user_id, server_id, delete=False):
 
 @bot.slash_command(name="alert", description="Set a price alert for a coin")
 async def alert(ctx, coin: str, target: str, cooldown: int = None):
-    await ctx.defer()
+    await ctx.defer(ephemeral=True)
     server_id = str(ctx.guild.id)  # Get the server ID
     user_id = str(ctx.author.id)
     coin_id = await check_coin(coin)
@@ -509,15 +509,15 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
 
     if new_alert['cooldown'] is None:
         if alert_type == 'change':
-            await ctx.followup.send(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}%. This is a one-time alert.", ephemeral=True)
+            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}%. This is a one-time alert.")
         else:
-            await ctx.followup.send(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}. This is a one-time alert.", ephemeral=True)
+            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}. This is a one-time alert.")
     else:
         cooldown_in_hours = new_alert['cooldown'] / 3600  # Convert seconds to hours
         if alert_type == 'change':
-            await ctx.followup.send(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}%. Cooldown: {cooldown_in_hours:.0f} hours.", ephemeral=True)
+            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}%. Cooldown: {cooldown_in_hours:.0f} hours.")
         else:
-            await ctx.followup.send(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}. Cooldown: {cooldown_in_hours:.0f} hours.", ephemeral=True)
+            await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin} {condition} {target_value:.0f}. Cooldown: {cooldown_in_hours:.0f} hours.")
 
 @bot.slash_command(name="clear", description="Clear all alerts and/or favorites for a user")
 async def clear_data(ctx, data_type: str = None):
