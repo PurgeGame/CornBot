@@ -136,14 +136,15 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
     current_message = ''
 
     for coin_id, prices in filtered_coins.items():
-        market_cap = format_number(prices['market_cap'])  
+        market_cap = format_number(prices['market_cap']) if format_number(prices['market_cap']) != 0 else 'N/A'
         price = format_number(prices['current_price']) if prices['current_price'] else 'N/A'
         change = f"{'+-'[prices['price_change_percentage_24h'] < 0]}{abs(prices['price_change_percentage_24h']):.1f}" if prices['price_change_percentage_24h'] else 'N/A'
         ath = format_number(prices['ath']) if prices['ath'] else 'N/A'
         ath_change = prices['ath_change_percentage'] if prices['ath_change_percentage'] else 'N/A'
         mc_rank = prices['market_cap_rank'] if prices['market_cap_rank'] else 'N/A'
 
-        table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
+        name_or_id = coin_id[:12] + '..' if not display_id and len(coin_id) > 12 else coin_id
+        table.add_row([name_or_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
 
         # Check if the table fits within the limit
         table_str = str(table)
@@ -156,7 +157,7 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
             table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Rank', 'ATH', 'Δ ATH']
             table.align = 'r'  # right-align data
             table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
-            table.add_row([coin_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
+            table.add_row([name_or_id, price, f'{change}%', f'{market_cap}', mc_rank, ath, f"{ath_change:02.0f}%"])
             current_message = ''
 
     # Add the last table to the messages
@@ -173,7 +174,7 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
         await ctx.edit(content=messages[0])
         for message in messages[1:]:
             await ctx.send(content=message)
-
+            
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx, list_name: Optional[str] = None):
     await ctx.defer()
@@ -221,7 +222,7 @@ def get_emoji(action,coin):
         return random.choice(sell_emojis)
 
 
-@bot.slash_command(name="ofa", description="Suggests to buy or sell a random coin from your favorites or the default coins")
+@bot.slash_command(name="ofa", description="Gives Official Financial Advice")
 async def ofa(ctx):
     await ctx.defer()
     user_id = str(ctx.author.id)
@@ -254,7 +255,7 @@ async def ofa(ctx):
         await ctx.edit(content=f'Official Financial Advice: Play Purge Game')
         return
     else:
-        leverage = random.choice([6.9, 20, 42, 69, 100, 420])
+        leverage = random.choice([6.9, 20, 42.069, 69, 100, 420])
     # Decide whether to buy or sell
     action = 'BUY' if random.random() < .7 and leverage == 0 else 'LONG' if random.random() < .7 and leverage > 0 else 'SHORT'
     emoji = get_emoji(action,coin)
