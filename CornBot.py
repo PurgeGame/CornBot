@@ -90,7 +90,8 @@ async def check_coin(coin):
         if len(matching_ids) == 1:
             return matching_ids[0]
         else:
-            return await get_coin_with_lowest_market_cap_rank(matching_ids)
+            data = await fetch_coin_data(matching_ids)
+            return min(data, key=lambda coin_id: data[coin_id]['market_cap_rank'] if data[coin_id]['market_cap_rank'] is not None else float('inf'))
     else: 
         return False
 
@@ -104,7 +105,7 @@ async def price(ctx, coins: str):
         coin_id = await check_coin(coin)
         if not coin_id:
             continue
-        data = await get_prices([coin_id])
+        data = await fetch_coin_data([coin_id])
         if data and coin_id in data:
             coins_data[coin_id] = data[coin_id]
     await display_coins(ctx, coins_data)
@@ -156,12 +157,13 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
     current_message = ''
 
     for coin_id, prices in filtered_coins.items():
+        name = prices['name']  # Extract the name
         market_cap = format_number(prices['market_cap']) if format_number(prices['market_cap']) != 0 else 'N/A'
         price = format_number(prices['current_price']) if prices['current_price'] else 'N/A'
-        change = f"{'+-'[prices['price_change_percentage_24h'] < 0]}{abs(prices['price_change_percentage_24h']):.1f}" if prices['price_change_percentage_24h'] else 'N/A'
+        change = f"{'+-'[prices['change_24h'] < 0]}{abs(prices['change_24h']):.1f}" if prices['change_24h'] else 'N/A'
         ath_change = f"{prices['ath_change_percentage']:02.0f}%" if prices['ath_change_percentage'] else 'N/A'
 
-        name_or_id = coin_id[:12] + '..' if not display_id and len(coin_id) > 12 else coin_id
+        name_or_id = name if not display_id else coin_id  # Use the name if display_id is False
         table.add_row([name_or_id, price, f'{change}%', f'{market_cap}', ath_change])
 
         # Check if the table fits within the limit
@@ -213,7 +215,7 @@ async def coins(ctx, list_name: Optional[str] = None):
     else:
         await ctx.edit(content="You don't have any favorite coins saved.")
         return
-    prices = await get_prices(coins)
+    prices = await fetch_coin_data(coins)
     await display_coins(ctx, prices, list_name=list_name)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
@@ -222,7 +224,7 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
     url = f'https://api.coingecko.com/api/v3/search?query={query}'
     matching_coins = await fetch_data_from_api(url)
     matching_ids = [coin['id'] for coin in matching_coins['coins'][:num]]
-    prices = await get_prices(matching_ids)
+    prices = await fetch_coin_data(matching_ids)
     await display_coins(ctx, prices, display_id=True)
 
 def get_emoji(action,coin):
@@ -263,7 +265,7 @@ async def ofa(ctx):
     # Pick a random coin
     coin = random.choice(coins)
     # Get the price of the coin
-    prices = await get_prices([coin])
+    prices = await fetch_coin_data([coin])
     price = format_number(prices[coin]['current_price'])
     rand = random.random()
     if rand < .5:
@@ -288,6 +290,7 @@ def parse_data(data):
     parsed_data = {}
 
     for coin_id, coin in data.items():
+        name = coin['name']  # Extract the name
         current_price = coin['current_price']
         ath = coin['ath']
         ath_date = coin['ath_date']
@@ -297,9 +300,11 @@ def parse_data(data):
         change_24h = coin.get('price_change_percentage_24h')
         change_30d = coin.get('price_change_percentage_30d_in_currency')
         change_7d = coin.get('price_change_percentage_7d_in_currency')
+        ath_change_percentage = coin.get('ath_change_percentage')
 
         parsed_data[coin_id] = {
-            'usd': current_price,
+            'name': name,  # Add the name to the parsed data
+            'current_price': current_price,
             'market_cap': market_cap,
             'ath': ath,
             'ath_date': ath_date,
@@ -308,6 +313,7 @@ def parse_data(data):
             'change_24h': change_24h,
             'change_30d': change_30d,
             'change_7d': change_7d,
+            'ath_change_percentage': ath_change_percentage,
         }
 
     return parsed_data
@@ -321,28 +327,19 @@ async def fetch_coin_data(coin_ids):
     parsed_data = parse_data(data)
     return parsed_data
 
-async def get_prices(coins):
-    data = await fetch_coin_data(coins)
-    return data
-
 async def fetch_bitcoin_price_fallback():
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json') as response:
                 data_btc = await response.json()
-                return {'usd': int(data_btc['bpi']['USD']['rate_float'])}
+                return {'current_price': int(data_btc['bpi']['USD']['rate_float'])}
         except:
             try:
                 async with session.get('https://api.coinbase.com/v2/prices/BTC-USD/spot') as response:
                     data_btc = await response.json()
-                    return {'usd': int(float(data_btc['data']['amount']))}
+                    return {'current_price': int(float(data_btc['data']['amount']))}
             except:
-                return {'usd': .999}
-            
-async def get_coin_with_lowest_market_cap_rank(coin_ids):
-    data = await fetch_coin_data(coin_ids)
-    lowest_rank_id = min(data, key=lambda coin_id: data[coin_id]['market_cap_rank'] if data[coin_id]['market_cap_rank'] is not None else float('inf'))
-    return lowest_rank_id
+                return {'current_price': .999}
 
 async def get_bitcoin_price():
     global change_btc
@@ -366,7 +363,7 @@ async def get_bitcoin_price():
         await check_alerts(data)
         change_btc = data['bitcoin']['change_24h']
 
-    return (data['bitcoin']['usd'], change_btc, coingecko_success)
+    return (data['bitcoin']['current_price'], change_btc, coingecko_success)
 
 
 async def load_favorites():
@@ -469,77 +466,84 @@ def save_alerts(alert, user_id, server_id):
     # Return the updated alerts
     return existing_alerts
 
-
-
-@bot.slash_command(name="alert", description="Set a price alert for a coin")
-async def alert(ctx, coin: str, target: str, cooldown: int = None):
-    await ctx.defer(ephemeral=True)
-    server_id = str(ctx.guild.id)  # Get the server ID
+async def get_ids(ctx, coin):
+    server_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
     coin_id = await check_coin(coin)
-    if not coin_id:
-        await ctx.edit(content="Invalid coin")
-        return
+    return server_id, user_id, coin_id
 
-# Determine the alert type and target value based on the target argument
+async def get_alert_type_and_value(target):
     if target.lower() == 'ath':
-        alert_type = 'ath'
-        target_value = None  # No target value for ATH alerts
+        return 'ath', None
     elif '%' in target:
-        alert_type = 'change'
         try:
-            target_value = abs(float(target.strip('%')))  # Remove the '%' and convert to float
+            return 'change', abs(float(target.strip('%')))
         except ValueError:
-            await ctx.edit(content="Invalid percentage change target")
-            return
+            return None, None
     else:
-        alert_type = 'price'
         try:
-            target_value = float(target)
+            return 'price', float(target)
         except ValueError:
-            await ctx.edit(content="Invalid price target")
-            return
+            return None, None
 
-    # Fetch the current price of the coin
-    coin_data = await get_prices([coin_id])
-    current_price = coin_data[coin_id]['current_price']
+async def get_current_price(coin_id):
+    coin_data = await fetch_coin_data([coin_id])
+    return coin_data[coin_id]['current_price']
 
-    # Determine the condition based on the alert type
+def get_condition(alert_type, current_price, target_value):
     if alert_type == 'price':
-        if current_price < target_value:
-            condition = '>'
-        else:
-            condition = '<'
+        return '>' if current_price < target_value else '<'
     elif alert_type == 'change':
-        condition = '>'
-    else:  # For ATH alerts, no condition is needed
-        condition = None
+        return '>'
+    else:
+        return None
 
-    cooldown_seconds = cooldown * 3600 if cooldown is not None else None
-
-    new_alert = {
-        'coin': coin_id,  # Use coin_id instead of coin
+def create_alert(coin_id, alert_type, condition, target_value, cooldown_seconds, channel_id):
+    return {
+        'coin': coin_id,
         'alert_type': alert_type,
         'condition': condition,
         'target': target_value,
         'cooldown': cooldown_seconds,
         'last_triggered': 0,
-        'channel_id': str(ctx.channel.id)  # Save the channel ID
+        'channel_id': str(channel_id)
     }
 
-
-    save_alerts(new_alert, user_id, server_id)  # Pass new_alert directly to save_alerts
-
+async def send_confirmation_message(ctx, new_alert, coin_id):
     cooldown_message = ""
     if new_alert['cooldown'] is not None:
-        cooldown_in_hours = new_alert['cooldown'] / 3600  # Convert seconds to hours
+        cooldown_in_hours = new_alert['cooldown'] / 3600
         cooldown_message = f" Cooldown: {cooldown_in_hours:.0f} hours."
 
-    if alert_type == 'ath':
+    if new_alert['alert_type'] == 'ath':
         await ctx.edit(content=f"ATH alert set for {coin_id}.{cooldown_message}")
     else:
-        percentage_symbol = "%" if alert_type == 'change' else ""
-        await ctx.edit(content=f"{alert_type.capitalize()} alert set for {coin_id} {condition} {format_number(target_value)}{percentage_symbol}.{cooldown_message}")
+        percentage_symbol = "%" if new_alert['alert_type'] == 'change' else ""
+        await ctx.edit(content=f"{new_alert['alert_type'].capitalize()} alert set for {coin_id} {new_alert['condition']} {format_number(new_alert['target'])}{percentage_symbol}.{cooldown_message}")
+
+
+@bot.slash_command(name="alert", description="Set a price alert for a coin")
+async def alert(ctx, coin: str, target: str, cooldown: int = None):
+    await ctx.defer(ephemeral=True)
+    server_id, user_id, coin_id = await get_ids(ctx, coin)
+    if not coin_id:
+        await ctx.edit(content="Invalid coin")
+        return
+
+    alert_type, target_value = await get_alert_type_and_value(target)
+    if alert_type is None or target_value is None:
+        await ctx.edit(content="Invalid target")
+        return
+
+    current_price = await get_current_price(coin_id)
+    condition = get_condition(alert_type, current_price, target_value)
+
+    cooldown_seconds = cooldown * 3600 if cooldown is not None else None
+
+    new_alert = create_alert(coin_id, alert_type, condition, target_value, cooldown_seconds, ctx.channel.id)
+    save_alerts(new_alert, user_id, server_id)
+
+    await send_confirmation_message(ctx, new_alert, coin_id)
 
 
 @bot.slash_command(name="clear", description="Clear all alerts and/or favorites for a user")
@@ -612,7 +616,7 @@ async def check_alerts(data):
         for user_id, user_alerts in server_alerts.items():
             for alert in user_alerts.copy():  # Iterate over a copy of the list
                 if alert['coin'] in data:
-                    current_price = data[alert['coin']]['usd']
+                    current_price = data[alert['coin']]['current_price']
                     change_24h = data[alert['coin']]['change_24h']
                     ath = data[alert['coin']]['ath']  # Update ATH
                     ath_date = datetime.strptime(data[alert['coin']]['ath_date'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M+00:00")
