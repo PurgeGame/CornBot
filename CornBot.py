@@ -78,16 +78,6 @@ async def fetch_data_from_api(url):
                         await asyncio.sleep(2)  # Wait for 2 seconds before the next try
     return {}
 
-async def get_prices(coins):
-    # Convert the list of coins to a comma-separated string
-    coins_str = ', '.join(coin for coin in coins if coin is not None)
-    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coins_str}"
-    data = await fetch_data_from_api(url)
-    # Convert the list to a dictionary
-    prices = {coin['id']: coin for coin in data}
-    # Return the prices
-    return prices
-
 async def check_coin(coin):
     coin = coin.lower()
     matching_ids = []
@@ -103,15 +93,6 @@ async def check_coin(coin):
             return await get_coin_with_lowest_market_cap_rank(matching_ids)
     else: 
         return False
-
-async def get_coin_with_lowest_market_cap_rank(coin_ids):
-    # Convert the list of coin IDs to a comma-separated string
-    coin_ids_str = ', '.join(coin_ids)
-    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coin_ids_str}"
-    data = await fetch_data_from_api(url)
-    # Find the coin with the lowest market cap rank
-    lowest_rank_id = min(data, key=lambda coin: coin['market_cap_rank'] if coin['market_cap_rank'] is not None else float('inf'))['id']
-    return lowest_rank_id
 
 @bot.slash_command(name="price", description="Show the current price for a coin")
 async def price(ctx, coins: str):
@@ -302,97 +283,91 @@ async def ofa(ctx):
         await ctx.edit(content=f'Official Financial Advice: {action} {coin}, NOW at ${price}. {emoji}')
 
 def parse_data(data):
-    # Initialize an empty dictionary to store the parsed data
+    data = {coin['id']: coin for coin in data}
+
     parsed_data = {}
 
-    # Iterate over the list of dictionaries
-    for coin in data:
-        # Extract the necessary information
-        coin_id = coin['id']
+    for coin_id, coin in data.items():
         current_price = coin['current_price']
-        price_change_24h = coin['price_change_percentage_24h']
         ath = coin['ath']
         ath_date = coin['ath_date']
+        market_cap = coin['market_cap']
+        market_cap_rank = coin['market_cap_rank']
+        change_1y = coin.get('price_change_percentage_1y_in_currency')
+        change_24h = coin.get('price_change_percentage_24h')
+        change_30d = coin.get('price_change_percentage_30d_in_currency')
+        change_7d = coin.get('price_change_percentage_7d_in_currency')
 
-        # Store the information in the parsed_data dictionary
         parsed_data[coin_id] = {
             'usd': current_price,
-            'usd_24h_change': price_change_24h,
+            'market_cap': market_cap,
             'ath': ath,
             'ath_date': ath_date,
+            'market_cap_rank': market_cap_rank,
+            'change_1y': change_1y,
+            'change_24h': change_24h,
+            'change_30d': change_30d,
+            'change_7d': change_7d,
         }
 
-    # Transform parsed_data into a dictionary where the keys are coin IDs and the values are the coin data
-    data = {coin_id: coin_data for coin_id, coin_data in parsed_data.items()}
+    return parsed_data
 
+async def fetch_coin_data(coin_ids):
+    coin_ids_str = ', '.join(coin_ids)
+    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coin_ids_str}&price_change_percentage=7d%2C30d%2C1y"
+    if len(coin_ids) > 100:
+        url += f"&per_page={len(coin_ids) + 1}"
+    data = await fetch_data_from_api(url)
+    parsed_data = parse_data(data)
+    return parsed_data
+
+async def get_prices(coins):
+    data = await fetch_coin_data(coins)
     return data
 
+async def fetch_bitcoin_price_fallback():
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json') as response:
+                data_btc = await response.json()
+                return {'usd': int(data_btc['bpi']['USD']['rate_float'])}
+        except:
+            try:
+                async with session.get('https://api.coinbase.com/v2/prices/BTC-USD/spot') as response:
+                    data_btc = await response.json()
+                    return {'usd': int(float(data_btc['data']['amount']))}
+            except:
+                return {'usd': .999}
+            
+async def get_coin_with_lowest_market_cap_rank(coin_ids):
+    data = await fetch_coin_data(coin_ids)
+    lowest_rank_id = min(data, key=lambda coin_id: data[coin_id]['market_cap_rank'] if data[coin_id]['market_cap_rank'] is not None else float('inf'))
+    return lowest_rank_id
+
 async def get_bitcoin_price():
-    global change_btc  # Declare the variable as global so we can modify it
-
-    # Load the existing alerts from the file
+    global change_btc
     existing_alerts = load_json_file('alerts.json')
-
-    # Get the list of unique coins
     coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict) and 'coin' in alert]))
-    coins.append('bitcoin')  # Ensure 'bitcoin' is always included
-    coins = list(set(coins))  # Remove duplicates
+    coins.append('bitcoin')
+    coins = list(set(coins))
     if len(coins) > 250:
         coins = coins[:250]
 
-    # Prepare the URL
-    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={','.join(coins)}"
-    if len(coins) > 100:
-        url += f"&per_page={len(coins) + 1}"
-
     coingecko_success = True
     try:
-        data = await fetch_data_from_api(url)
-
+        data = await fetch_coin_data(coins)
     except:
         data = {}
         coingecko_success = False
-
-    data = parse_data(data)
-    
     if 'bitcoin' not in data:
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get('https://api.coindesk.com/v1/bpi/currentprice/BTC.json') as response:
-                    data_btc = await response.json()
-                    data['bitcoin'] = {'usd': int(data_btc['bpi']['USD']['rate_float'])}
-            except:
-                try:
-                    async with session.get('https://api.coinbase.com/v2/prices/BTC-USD/spot') as response:
-                        data_btc = await response.json()
-                        data['bitcoin'] = {'usd': int(float(data_btc['data']['amount']))}
-                except:
-                    data['bitcoin'] = {'usd': .999}
-    if coingecko_success and 'usd_24h_change' in data['bitcoin']: 
+        data['bitcoin'] = await fetch_bitcoin_price_fallback()
+
+    if coingecko_success and 'change_24h' in data['bitcoin']:
         await check_alerts(data)
-        change_btc = data['bitcoin']['usd_24h_change']  # Update the global variable only when CoinGecko API is successful and the key exists
+        change_btc = data['bitcoin']['change_24h']
 
-    price_btc = data['bitcoin']['usd']
+    return (data['bitcoin']['usd'], change_btc, coingecko_success)
 
-    return (price_btc, change_btc, coingecko_success)
-
-
-async def update_alerts_with_coin_data(data):
-    alerts = load_json_file('alerts.json')
-
-    for server_id, server_alerts in alerts.items():
-        for user_id, user_alerts in server_alerts.items():
-            for alert in user_alerts:  # alert is a dictionary
-                if alert['coin'] in data:
-                    alert['current_price'] = data[alert['coin']]['usd']
-                    alert['usd_24h_change'] = data[alert['coin']]['usd_24h_change']
-                    alert['ath'] = data[alert['coin']]['ath']  # Update ATH
-                    ath_date = datetime.strptime(data[alert['coin']]['ath_date'], "%Y-%m-%dT%H:%M:%S.%fZ")
-                    ath_date = ath_date.replace(tzinfo=timezone.utc)
-                    alert['ath_date'] = ath_date.strftime("%Y-%m-%dT%H:%M+00:00")  # Update ATH date
-
-    with open('alerts.json', 'w') as f:
-        json.dump(alerts, f)
 
 async def load_favorites():
     if os.path.exists('favorites.json'):
@@ -620,8 +595,8 @@ def check_price_alert(alert, current_price):
     return (alert['condition'] == '>' and current_price > alert['target']) or \
            (alert['condition'] == '<' and current_price < alert['target'])
 
-def check_change_alert(alert, usd_24h_change):
-    return abs(usd_24h_change) > alert['target']
+def check_change_alert(alert, change_24h):
+    return abs(change_24h) > alert['target']
 
 def check_ath_alert(alert, ath_date):
     if ath_date is not None:
@@ -638,23 +613,22 @@ async def check_alerts(data):
             for alert in user_alerts.copy():  # Iterate over a copy of the list
                 if alert['coin'] in data:
                     current_price = data[alert['coin']]['usd']
-                    usd_24h_change = data[alert['coin']]['usd_24h_change']
+                    change_24h = data[alert['coin']]['change_24h']
                     ath = data[alert['coin']]['ath']  # Update ATH
                     ath_date = datetime.strptime(data[alert['coin']]['ath_date'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M+00:00")
                     cooldown = alert.get('cooldown')  # Get the cooldown, or None if it's not present
                     last_triggered = alert.get('last_triggered', 0)  # Get the last_triggered, or 0 if it's not present
                     if cooldown is not None and time.time() - last_triggered < cooldown:
                         continue
-
                     channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
                     channel = await bot.fetch_channel(int(channel_id))
 
                     if alert['alert_type'] == 'price' and check_price_alert(alert, current_price):
                         alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"price is now {alert['condition']} {alert['target']}")
 
-                    elif alert['alert_type'] == 'change' and check_change_alert(alert, usd_24h_change):
-                        change_type = "up" if usd_24h_change > 0 else "down"
-                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"is {change_type} {abs(round(usd_24h_change,1))}% in the last 24h")
+                    elif alert['alert_type'] == 'change' and check_change_alert(alert, change_24h):
+                        change_type = "up" if change_24h > 0 else "down"
+                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"is {change_type} {abs(round(change_24h,1))}% in the last 24h")
 
                     elif alert['alert_type'] == 'ath' and check_ath_alert(alert, ath_date):
                         alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"price has reached a new All-Time High of {ath}!")
@@ -704,9 +678,6 @@ async def update_activity():
     else:
         change = round(change, 2)
         change_btc = change  # Update the last known change
-        
-    
-
     if change >= 0:
         await bot.change_presence(activity=discord.Game(name=f"${price_btc} ⬈{change}%"))
     elif change > -10:
