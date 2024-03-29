@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from typing import Optional
 import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 load_dotenv()
@@ -147,42 +147,42 @@ def format_number(num):
             return round_sig(num, 2)
         
 async def create_table(coins_data, display_id, include_historical=False):
-    print(include_historical)
     if include_historical:
-        table = PrettyTable()
-        table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Δ 7d', 'Δ 30d', 'Δ 1y', 'M Cap', 'Δ ATH']
+        field_names = ['ID' if display_id else 'Name', 'Price', 'M Cap', 'Δ 24h', 'Δ 7d', 'Δ 30d', 'Δ 1y', 'Δ ATH']
     else:
-        table = PrettyTable()
-        table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'Δ ATH']
+        field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'Δ ATH']
+
+    table = PrettyTable()
+    table.field_names = field_names
     table.align = 'r'  # right-align data
     table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
     for coin_id, prices in coins_data.items():
-        print(f"prices for {coin_id}: {prices}")
-        name = prices['name']  # Extract the name
-        if len(name) > 15:  # Check if the name is longer than 12 characters
-            name = name[:13] + '..'  # If it is, truncate it to the first 9 characters and append '...'
+        name = truncate_name(prices['name'])
         market_cap = format_number(prices['market_cap']) if format_number(prices['market_cap']) != 0 else 'N/A'
         price = format_number(prices['current_price']) if prices['current_price'] else 'N/A'
-        change_24h = f"{'+-'[prices['change_24h'] < 0]}{abs(prices['change_24h']):.1f}" if prices['change_24h'] else 'N/A'
-        ath_change = f"{prices['ath_change_percentage']:02.0f}%" if prices['ath_change_percentage'] else 'N/A'
+        change_24h = format_change(prices['change_24h'])
+        ath_change = format_change(prices['ath_change_percentage'])
 
         if include_historical:
-            change_7d = f"{'+-'[prices['change_7d'] < 0]}{abs(prices['change_7d']):.1f}" if 'change_7d' in prices else 'N/A'
-            change_30d = f"{'+-'[prices['change_30d'] < 0]}{abs(prices['change_30d']):.1f}" if 'change_30d' in prices else 'N/A'
-            change_1y = f"{'+-'[prices['change_1y'] < 0]}{abs(prices['change_1y']):.1f}" if 'change_1y' in prices else 'N/A'
+            change_7d = format_change(prices.get('change_7d'))
+            change_30d = format_change(prices.get('change_30d'))
+            change_1y = format_change(prices.get('change_1y'))
+            row_data = [name if not display_id else coin_id, price, market_cap, change_24h, change_7d, change_30d, change_1y, ath_change]
         else:
-            change_7d = 'N/A'
-            change_30d = 'N/A'
-            change_1y = 'N/A'
+            row_data = [name if not display_id else coin_id, price, change_24h, market_cap, ath_change]
 
-        name_or_id = name if not display_id else coin_id  # Use the name if display_id is False
-        if include_historical:
-            table.add_row([name_or_id, price, f'{change_24h}%', f'{change_7d}%', f'{change_30d}%', f'{change_1y}%', f'{market_cap}', ath_change])
-        else:
-            table.add_row([name_or_id, price, f'{change_24h}%', f'{market_cap}', ath_change])
+        table.add_row(row_data)
 
     return table
+
+def truncate_name(name, max_length=15):
+    return name[:max_length-2] + '..' if len(name) > max_length else name
+
+def format_change(change):
+    if change is None:
+        return 'N/A'
+    return f"{'+-'[change < 0]}{abs(change):.1f}%"
 
 async def split_table(table):
     messages = []
@@ -244,8 +244,9 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
     await display_coins(ctx, prices, display_id=True)
 
 def get_emoji(action,coin):
-    buy_emojis = ['<a:pepelaugh:922704567332917258> ', '<a:buybuybuy:920335813294841966> ', '<:dogeGIGA:839205306042286151> ']
-    sell_emojis = ['<:harold:826533474886221904> ', '<:bonk:1056641594255736832>', '<:shrug:1203958281094299678>','<:cramer:1062188133711626301> ']
+    neutral_emojis = ['<:glasses:958216013529366528> ', '<:scam:1059964673530806283> ', '<:shrug:1203958281094299678>','<a:nfa:1042264955879166003> ' ] # Replace with your actual neutral emojis
+    buy_emojis = ['<a:pepelaugh:922704567332917258> ', '<a:buybuybuy:920335813294841966> ', '<:dogeGIGA:839205306042286151> ','<:smoke:929557485210181673> '] + neutral_emojis
+    sell_emojis = ['<:harold:826533474886221904> ', '<:bonk:1056641594255736832>','<:cramer:1062188133711626301> ','<:bobo:1016420363829256212> ','<a:sadpepedance:935358551151505469>' ] + neutral_emojis
     bitcoin_emojis = [ '🌽', '<:SAYLOR:981349800110850048>','<:fink:1166095456774926456>']
     if action == 'BUY'  or action == 'LONG':
         # If the action is to buy, select a positive emoji
@@ -261,44 +262,89 @@ def get_emoji(action,coin):
 async def ofa(ctx):
     await ctx.defer()
     user_id = str(ctx.author.id)
-    favorites = {}
-    if os.path.exists('favorites.json'):
-        with open('favorites.json', 'r') as f:
-            favorites = json.load(f)
+    favorites = load_favorites()
+    coins = get_coins(user_id, favorites)
+    coin = random.choice(coins)
+    prices = await fetch_coin_data([coin])
+    price = prices[coin]['current_price']
+    leverage = get_leverage()
+    action = get_action(leverage)
+    emoji = get_emoji(action,coin)
+    buy_time, buy_price = get_buy_time_and_price(prices, coin, price)
+    await send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji)
+
+def get_coins(user_id, favorites):
     coins = []
     if random.random() < .5:
-        # Load every coin from anyone's favorites
         for user_favorites in favorites.values():
             coins += user_favorites
-    else:
-        if user_id in favorites and favorites[user_id]:
-            # Use the user's favorite coins if they have any
-            coins = favorites[user_id]
-    # Add Bitcoin, Ethereum, and Solana if they are not already in the list
+    elif user_id in favorites and favorites[user_id]:
+        coins = favorites[user_id]
     for coin in ['bitcoin', 'ethereum', 'solana']:
         if coin not in coins:
             coins.append(coin)
-    # Pick a random coin
-    coin = random.choice(coins)
-    # Get the price of the coin
-    prices = await fetch_coin_data([coin])
-    price = format_number(prices[coin]['current_price'])
+    return coins
+
+def get_leverage():
     rand = random.random()
     if rand < .5:
-        leverage = 0
-    elif rand >.995:
+        return 0
+    elif rand > .995:
+        return None
+    else:
+        return random.choice([6.9, 20, 42.069, 69, 100, 420])
+
+    
+def get_action(leverage):
+    return 'BUY' if random.random() < .7 and leverage == 0 else 'LONG' if random.random() < .7 and leverage > 0 else 'SHORT'
+
+def calculate_change_date(change_key):
+    if change_key == 'change_24h':
+        return 'yesterday'
+    elif change_key == 'change_7d':
+        return 'a week ago'
+    elif change_key == 'change_30d':
+        return 'a month ago'
+    elif change_key == 'change_1y':
+        return 'a year ago'
+    else:
+        return 'now'
+
+def get_valid_change(prices, coin):
+    while True:
+        change_key = random.choice(['change_24h', 'change_7d', 'change_30d', 'change_1y'])
+        change = prices[coin].get(change_key)
+        if change is not None:
+            return change_key, change / 100  # Return the key and the change value as a decimal
+
+def get_buy_time_and_price(prices, coin, price):
+    rand = random.random()
+    if rand < .1:
+        change_key, change = get_valid_change(prices, coin)
+        change_date = calculate_change_date(change_key)
+        if change < 0:  # Price decreased
+            approx_price = price / (1 - change)
+        else:  # Price increased
+            approx_price = price / (1 + change)
+        return change_date, approx_price
+    elif rand < 0.6:
+        return 'NOW', price
+    elif rand < 0.75:
+        return 'TOMORROW', price * (1 + random.uniform(-0.2, 0.2))
+    elif rand < 0.9:
+        return 'NEXT WEEK', price * (1 + random.uniform(-0.2, 0.2))
+    else:
+        date = datetime.datetime.strptime(prices[coin]["ath_date"], '%Y-%m-%dT%H:%M:%S.%fZ')
+        date = date.strftime('%B %d, %Y')  # Format the date as 'Month Day, Year'
+        return f'on {date}', prices[coin]['ath']
+
+async def send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji):
+    if leverage is None:
         await ctx.edit(content=f'Official Financial Advice: Play Purge Game')
-        return
+    elif leverage > 0:
+        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, {buy_time} at ${format_number(buy_price)}, with {leverage}x leverage. {emoji}')
     else:
-        leverage = random.choice([6.9, 20, 42.069, 69, 100, 420])
-    # Decide whether to buy or sell
-    action = 'BUY' if random.random() < .7 and leverage == 0 else 'LONG' if random.random() < .7 and leverage > 0 else 'SHORT'
-    emoji = get_emoji(action,coin)
-    # Send the suggestion
-    if leverage > 0:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, NOW at ${price}, with {leverage}x leverage. {emoji}')
-    else:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, NOW at ${price}. {emoji}')
+        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, {buy_time} at ${format_number(buy_price)}. {emoji}')
 
 def parse_data(data):
     data = {coin['id']: coin for coin in data}
@@ -382,7 +428,7 @@ async def get_bitcoin_price():
     return (data['bitcoin']['current_price'], change_btc, coingecko_success)
 
 
-async def load_favorites():
+def load_favorites():
     if os.path.exists('favorites.json'):
         with open('favorites.json', 'r') as f:
             return json.load(f)
