@@ -67,19 +67,14 @@ async def fetch_data_from_api(url):
     headers = {"x-cg-demo-api-key": GECKO_API}
     # Send a request to the CoinGecko API
     async with aiohttp.ClientSession() as session:
-        for i in range(2):  # Try twice
-            if i == 0:
-                async with session.get(url) as response:  # First try without headers
-                    if response.status == 200:
-                        data = await response.json()
-                        return data
-                    else:
+        for i in range(3):  # Try three times
+            async with session.get(url, headers=(headers if i > 0 else None)) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    return data
+                else:
+                    if i < 2:  # Don't wait after the last try
                         await asyncio.sleep(2)  # Wait for 2 seconds before the next try
-            else:
-                async with session.get(url, headers=headers) as response:  # Second try with headers
-                    if response.status == 200:
-                        data = await response.json()
-                        return data
     return {}
 
 async def get_prices(coins):
@@ -262,7 +257,6 @@ def get_emoji(action,coin):
         # If the action is to sell, select a negative emoji
         return random.choice(sell_emojis)
 
-
 @bot.slash_command(name="ofa", description="Gives Official Financial Advice")
 async def ofa(ctx):
     await ctx.defer()
@@ -321,13 +315,16 @@ def parse_data(data):
 
         # Store the information in the parsed_data dictionary
         parsed_data[coin_id] = {
-            'current_price': current_price,
-            'price_change_24h': price_change_24h,
+            'usd': current_price,
+            'usd_24h_change': price_change_24h,
             'ath': ath,
             'ath_date': ath_date,
         }
 
-    return parsed_data
+    # Transform parsed_data into a dictionary where the keys are coin IDs and the values are the coin data
+    data = {coin_id: coin_data for coin_id, coin_data in parsed_data.items()}
+
+    return data
 
 async def get_bitcoin_price():
     global change_btc  # Declare the variable as global so we can modify it
@@ -341,21 +338,21 @@ async def get_bitcoin_price():
     coins = list(set(coins))  # Remove duplicates
 
     # Prepare the URL
-    url = f"https://pro-api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={','.join(coins)}"
+    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={','.join(coins)}"
     if len(coins) > 100:
         url += "&per_page=250"
 
     coingecko_success = True
     try:
         data = await fetch_data_from_api(url)
+
     except:
         data = {}
         coingecko_success = False
 
-    # Convert the list of dictionaries to a dictionary of dictionaries
     data = parse_data(data)
-    data = {coin['id']: coin for coin in data}
-
+    print(data)
+    
     if 'bitcoin' not in data:
         async with aiohttp.ClientSession() as session:
             try:
@@ -660,8 +657,8 @@ async def check_alerts():
                     ath_date = alert['ath_date']
                     if ath_date is not None:
                         ath_date = datetime.datetime.strptime(ath_date, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        ath_date = ath_date.replace(tzinfo=ZoneInfo("UTC"))
-                        if (datetime.datetime.now(ZoneInfo("UTC")) - ath_date).total_seconds() <= 600:  # Check if the ATH date is within the last 10 minutes
+                        ath_date = ath_date.replace(tzinfo=datetime.timezone.utc)
+                        if (datetime.datetime.now(datetime.timezone.utc) - ath_date).total_seconds() <= 600:  # Check if the ATH date is within the last 10 minutes
                             ath_value = alert['ath']  # Get the ATH value from the alert
                             await channel.send(f"<@{user_id}> {coin} price has reached a new All-Time High of {ath_value}!")
                             alert['last_triggered'] = time.time()
