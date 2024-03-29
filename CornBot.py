@@ -183,14 +183,16 @@ def format_change(change):
         return 'N/A'
     return f"{'+-'[change < 0]}{abs(change):.1f}%"
 
-async def split_table(table):
+async def split_table(table, limit=2000):
     messages = []
-    table_str = str(table)
-    if len(table_str) > 2000:
-        table.del_row(-1)
-        messages.append(f'```\n{table}\n```')
-    else:
-        messages.append(f'```\n{table}\n```')
+    current_message = ""
+    for line in str(table).split('\n'):
+        if len(current_message) + len(line) + len('```\n\n```') > limit:  # account for markdown code block characters
+            messages.append(f'```\n{current_message}\n```')
+            current_message = line
+        else:
+            current_message += '\n' + line
+    messages.append(f'```\n{current_message}\n```')
     return messages
 
 async def display_coins(ctx, coins_data, display_id=False, list_name=None, include_historical=False):
@@ -236,6 +238,11 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
     url = f'https://api.coingecko.com/api/v3/search?query={query}'
     matching_coins = await fetch_data_from_api(url)
     matching_ids = [coin['id'] for coin in matching_coins['coins'][:num]]
+    
+    if not matching_ids:
+        await ctx.edit(content="No matching coins found.")
+        return
+
     coin_data = await fetch_coin_data(matching_ids)
     await display_coins(ctx, coin_data, display_id=True)
 
