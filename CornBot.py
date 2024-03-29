@@ -405,7 +405,7 @@ async def check_list_name(list_name):
 
 @bot.slash_command(name="add", description="Add coins to your favorites or a list")
 async def manage_coins(ctx, coins: str, list_name: str = None, is_coin_id: bool = False):
-    await ctx.defer()
+    await ctx.defer(ephemeral=True)
     user_id = str(ctx.author.id)
     
     if is_coin_id:
@@ -421,7 +421,7 @@ async def manage_coins(ctx, coins: str, list_name: str = None, is_coin_id: bool 
     else:
         if list_name:
             if not await check_list_name(list_name):
-                await ctx.send("List name cannot contain more than 10 digits.")
+                await ctx.edit("List name cannot contain more than 10 digits.")
                 return
             await manage_coins_command(ctx, coins, list_name, 'add', list_name)
         else:
