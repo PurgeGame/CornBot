@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from typing import Optional
 import asyncio
 import time
+from datetime import datetime, timezone
 
 
 load_dotenv()
@@ -309,7 +310,7 @@ def parse_data(data):
         # Extract the necessary information
         coin_id = coin['id']
         current_price = coin['current_price']
-        price_change_24h = coin['price_change_24h']
+        price_change_24h = coin['price_change_percentage_24h']
         ath = coin['ath']
         ath_date = coin['ath_date']
 
@@ -336,11 +337,13 @@ async def get_bitcoin_price():
     coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict) and 'coin' in alert]))
     coins.append('bitcoin')  # Ensure 'bitcoin' is always included
     coins = list(set(coins))  # Remove duplicates
+    if len(coins) > 250:
+        coins = coins[:250]
 
     # Prepare the URL
     url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={','.join(coins)}"
     if len(coins) > 100:
-        url += "&per_page=250"
+        url += f"&per_page={len(coins) + 1}"
 
     coingecko_success = True
     try:
@@ -366,7 +369,7 @@ async def get_bitcoin_price():
                 except:
                     data['bitcoin'] = {'usd': .999}
     if coingecko_success and 'usd_24h_change' in data['bitcoin']: 
-        await update_alerts_with_coin_data(data)
+        await check_alerts(data)
         change_btc = data['bitcoin']['usd_24h_change']  # Update the global variable only when CoinGecko API is successful and the key exists
 
     price_btc = data['bitcoin']['usd']
@@ -384,10 +387,13 @@ async def update_alerts_with_coin_data(data):
                     alert['current_price'] = data[alert['coin']]['usd']
                     alert['usd_24h_change'] = data[alert['coin']]['usd_24h_change']
                     alert['ath'] = data[alert['coin']]['ath']  # Update ATH
-                    alert['ath_date'] = data[alert['coin']]['ath_date']  # Update ATH date
+                    ath_date = datetime.strptime(data[alert['coin']]['ath_date'], "%Y-%m-%dT%H:%M:%S.%fZ")
+                    ath_date = ath_date.replace(tzinfo=timezone.utc)
+                    alert['ath_date'] = ath_date.strftime("%Y-%m-%dT%H:%M+00:00")  # Update ATH date
 
     with open('alerts.json', 'w') as f:
         json.dump(alerts, f)
+
 async def load_favorites():
     if os.path.exists('favorites.json'):
         with open('favorites.json', 'r') as f:
@@ -541,14 +547,11 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         'alert_type': alert_type,
         'condition': condition,
         'target': target_value,
-        'current_price': current_price,
-        'usd_24h_change': None,
-        'ath': None,  # Add ATH
-        'ath_date': None,  # Add ATH date
         'cooldown': cooldown_seconds,
         'last_triggered': 0,
         'channel_id': str(ctx.channel.id)  # Save the channel ID
-    }  
+    }
+
 
     save_alerts(new_alert, user_id, server_id)  # Pass new_alert directly to save_alerts
 
@@ -609,60 +612,55 @@ async def clear_data(ctx, data_type: str = None):
     else:
         await ctx.edit(content=alert_message if alert_message else favorite_message)
 
-import datetime
-from zoneinfo import ZoneInfo
+async def send_alert(channel, user_id, coin, message):
+    await channel.send(f"<@{user_id}> {coin} {message}")
+    return time.time()
 
-async def check_alerts():
+def check_price_alert(alert, current_price):
+    return (alert['condition'] == '>' and current_price > alert['target']) or \
+           (alert['condition'] == '<' and current_price < alert['target'])
+
+def check_change_alert(alert, usd_24h_change):
+    return abs(usd_24h_change) > alert['target']
+
+def check_ath_alert(alert, ath_date):
+    if ath_date is not None:
+        ath_date = datetime.fromisoformat(ath_date.replace("Z", "+00:00"))
+        return (datetime.now(timezone.utc) - ath_date).total_seconds() <= 600
+    return False
+
+async def check_alerts(data):
     alerts = load_json_file('alerts.json')
     spam_channels = load_json_file('spam_channels.json')
 
     for server_id, server_alerts in alerts.items():
         for user_id, user_alerts in server_alerts.items():
             for alert in user_alerts.copy():  # Iterate over a copy of the list
-                cooldown = alert.get('cooldown')  # Get the cooldown, or None if it's not present
-                last_triggered = alert.get('last_triggered', 0)  # Get the last_triggered, or 0 if it's not present
-                if cooldown is not None and time.time() - last_triggered < cooldown:
-                    continue
+                if alert['coin'] in data:
+                    current_price = data[alert['coin']]['usd']
+                    usd_24h_change = data[alert['coin']]['usd_24h_change']
+                    ath = data[alert['coin']]['ath']  # Update ATH
+                    ath_date = datetime.strptime(data[alert['coin']]['ath_date'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M+00:00")
+                    cooldown = alert.get('cooldown')  # Get the cooldown, or None if it's not present
+                    last_triggered = alert.get('last_triggered', 0)  # Get the last_triggered, or 0 if it's not present
+                    if cooldown is not None and time.time() - last_triggered < cooldown:
+                        continue
 
-                current_price = alert.get('current_price')
-                if current_price is None:
-                    continue  # Skip this iteration if current_price is None
+                    channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
+                    channel = await bot.fetch_channel(int(channel_id))
 
-                coin = alert['coin']
-                channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
-                channel = await bot.fetch_channel(int(channel_id))
+                    if alert['alert_type'] == 'price' and check_price_alert(alert, current_price):
+                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"price is now {alert['condition']} {alert['target']}")
 
-                if alert['alert_type'] == 'price':
-                    if (alert['condition'] == '>' and current_price > alert['target']) or \
-                    (alert['condition'] == '<' and current_price < alert['target']):
-                        await channel.send(f"<@{user_id}> {coin} price is now {alert['condition']} {alert['target']}")
-                        alert['last_triggered'] = time.time()
-                        if cooldown is None:
-                            user_alerts.remove(alert)  # Remove the alert
+                    elif alert['alert_type'] == 'change' and check_change_alert(alert, usd_24h_change):
+                        change_type = "up" if usd_24h_change > 0 else "down"
+                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"is {change_type} {abs(round(usd_24h_change,1))}% in the last 24h")
 
-                elif alert['alert_type'] == 'change':
-                    percentage_change = alert.get('usd_24h_change')
-                    if percentage_change is None:
-                        continue  # Skip this iteration if percentage_change is None
+                    elif alert['alert_type'] == 'ath' and check_ath_alert(alert, ath_date):
+                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"price has reached a new All-Time High of {ath}!")
 
-                    if abs(percentage_change) > alert['target']:
-                        change_type = "up" if percentage_change > 0 else "down"
-                        await channel.send(f"<@{user_id}> {coin} is {change_type} {abs(round(percentage_change,1))}% in the last 24h")
-                        alert['last_triggered'] = time.time()
-                        if cooldown is None:
-                            user_alerts.remove(alert)  # Remove the alert
-
-                elif alert['alert_type'] == 'ath':
-                    ath_date = alert['ath_date']
-                    if ath_date is not None:
-                        ath_date = datetime.datetime.strptime(ath_date, "%Y-%m-%dT%H:%M:%S.%fZ")
-                        ath_date = ath_date.replace(tzinfo=datetime.timezone.utc)
-                        if (datetime.datetime.now(datetime.timezone.utc) - ath_date).total_seconds() <= 600:  # Check if the ATH date is within the last 10 minutes
-                            ath_value = alert['ath']  # Get the ATH value from the alert
-                            await channel.send(f"<@{user_id}> {coin} price has reached a new All-Time High of {ath_value}!")
-                            alert['last_triggered'] = time.time()
-                            if cooldown is None:
-                                user_alerts.remove(alert)  # Remove the alert
+                    if cooldown is None:
+                        user_alerts.remove(alert)  # Remove the alert
 
     # Save the alerts
     with open('alerts.json', 'w') as f:
@@ -706,7 +704,7 @@ async def update_activity():
     else:
         change = round(change, 2)
         change_btc = change  # Update the last known change
-        await check_alerts()
+        
     
 
     if change >= 0:
