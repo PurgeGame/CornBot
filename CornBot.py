@@ -588,10 +588,10 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         await ctx.edit(content="Invalid coin")
         return
     alert_type, target_value = await get_alert_type_and_value(target)
-    if alert_type is None or target_value is None:
+    if alert_type is None:
         await ctx.edit(content="Invalid target")
         return
-    #Get the current price of the coin to determine direction
+    # Get the current price of the coin to determine direction
     coin_data = await fetch_coin_data([coin_id])
     current_price = coin_data[coin_id]['current_price']
     condition = get_condition(alert_type, current_price, target_value)
