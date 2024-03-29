@@ -351,7 +351,6 @@ async def get_bitcoin_price():
         coingecko_success = False
 
     data = parse_data(data)
-    print(data)
     
     if 'bitcoin' not in data:
         async with aiohttp.ClientSession() as session:
