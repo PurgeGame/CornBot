@@ -608,7 +608,6 @@ async def check_alerts():
 @bot.slash_command(name="set_spam_channel", description="Set the current channel as the server's spam channel")
 @commands.has_permissions(manage_channels=True)
 async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_messages: bool = False):
-    ctx.defer(ephemeral=True)
     server_id = str(ctx.guild.id)  # Get the server ID
     channel_id = str(ctx.channel.id)  # Get the channel ID
 
@@ -625,7 +624,7 @@ async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_mess
     with open('spam_channels.json', 'w') as f:
         json.dump(spam_channels, f)
 
-    await ctx.edit(content=f"Spam channel set to {ctx.channel.name}.")
+    await ctx.send(f"Spam channel set to {ctx.channel.name}.")
         
 @bot.event
 async def on_ready():
