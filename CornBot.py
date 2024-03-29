@@ -745,6 +745,7 @@ async def on_ready():
 async def update_activity():
     global change_btc  # Declare the variable as global so we can modify it
     price_btc, change, gecko = await get_bitcoin_price()
+    price_btc = format_number(price_btc)
     if not gecko:
         if price_btc == .999:
             return
