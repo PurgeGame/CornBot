@@ -549,44 +549,50 @@ async def clear_data(ctx, data_type: str = None):
     server_id = str(ctx.guild.id)  # Get the server ID
     user_id = str(ctx.author.id)
 
-    alert_message = ""
-    favorite_message = ""
-
-    if data_type in ['alerts', None]:
-        alerts = load_json_file('alerts.json')
-        if server_id in alerts and user_id in alerts[server_id]:
-            del alerts[server_id][user_id]  # Remove the user's alerts
-
-            # If no other users in the server, remove the server data too
-            if not alerts[server_id]:
-                del alerts[server_id]
-
-            # Write the updated alerts back to the file
-            with open('alerts.json', 'w') as f:
-                f.write(json.dumps(alerts))
-
-            alert_message = "All alerts have been cleared."
-        else:
-            alert_message = "No alerts found."
-
-    if data_type in ['favorites', None]:
-        favorites = load_json_file('favorites.json')
-        if user_id in favorites:
-            del favorites[user_id]  # Remove the user's favorites
-
-            # Write the updated favorites back to the file
-            with open('favorites.json', 'w') as f:
-                f.write(json.dumps(favorites))
-
-            favorite_message = "All favorites have been cleared."
-        else:
-            favorite_message = "No favorites found."
+    alert_message = clear_alerts(data_type, server_id, user_id)
+    favorite_message = clear_favorites(data_type, user_id)
 
     # Edit the original deferred message
     if alert_message and favorite_message:
         await ctx.edit(content=f"{alert_message}\n{favorite_message}")
     else:
         await ctx.edit(content=alert_message if alert_message else favorite_message)
+
+def clear_alerts(data_type, server_id, user_id):
+    if data_type not in ['alerts', None]:
+        return ""
+
+    alerts = load_json_file('alerts.json')
+    if server_id in alerts and user_id in alerts[server_id]:
+        del alerts[server_id][user_id]  # Remove the user's alerts
+
+        # If no other users in the server, remove the server data too
+        if not alerts[server_id]:
+            del alerts[server_id]
+
+        # Write the updated alerts back to the file
+        with open('alerts.json', 'w') as f:
+            f.write(json.dumps(alerts))
+
+        return "All alerts have been cleared."
+    else:
+        return "No alerts found."
+
+def clear_favorites(data_type, user_id):
+    if data_type not in ['favorites', None]:
+        return ""
+
+    favorites = load_json_file('favorites.json')
+    if user_id in favorites:
+        del favorites[user_id]  # Remove the user's favorites
+
+        # Write the updated favorites back to the file
+        with open('favorites.json', 'w') as f:
+            f.write(json.dumps(favorites))
+
+        return "All favorites have been cleared."
+    else:
+        return "No favorites found."
 
 async def send_alert(channel, user_id, coin, message):
     await channel.send(f"<@{user_id}> {coin} {message}")
