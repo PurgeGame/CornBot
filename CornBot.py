@@ -421,7 +421,7 @@ async def manage_coins(ctx, coins: str, list_name: str = None, is_coin_id: bool 
     else:
         if list_name:
             if not await check_list_name(list_name):
-                await ctx.edit("List name cannot contain more than 10 digits.")
+                await ctx.edit(content = "List name cannot contain more than 10 digits.")
                 return
             await manage_coins_command(ctx, coins, list_name, 'add', list_name)
         else:
