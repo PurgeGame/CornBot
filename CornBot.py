@@ -338,7 +338,7 @@ async def get_bitcoin_price():
                 except:
                     data['bitcoin'] = {'usd': .999}
     if coingecko_success and 'usd_24h_change' in data['bitcoin']: 
-        
+        await update_alerts_with_coin_data(data)
         change_btc = data['bitcoin']['usd_24h_change']  # Update the global variable only when CoinGecko API is successful and the key exists
 
     price_btc = data['bitcoin']['usd']
