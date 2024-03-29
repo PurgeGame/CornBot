@@ -129,7 +129,7 @@ def format_number(num):
         return 0
     else:
         num = float(num)
-        if num >= 1e11:
+        if num >= 1e10:
             return f'{num/1e9:,.0f} B'
         elif num >= 1e7:
             return f'{num/1e6:,.0f} M'
@@ -340,9 +340,9 @@ async def send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji):
     if leverage is None:
         await ctx.edit(content=f'Official Financial Advice: Play Purge Game')
     elif leverage > 0:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, {buy_time} at ${format_number(buy_price)}, with {leverage}x leverage. {emoji}')
+        await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}, with {leverage}x leverage. {emoji}')
     else:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin}, {buy_time} at ${format_number(buy_price)}. {emoji}')
+        await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}. {emoji}')
 
 def parse_data(data):
     data = {coin['id']: coin for coin in data}
@@ -718,6 +718,7 @@ async def check_alerts(data):
 @bot.slash_command(name="set_spam_channel", description="Set the current channel as the server's spam channel")
 @commands.has_permissions(manage_channels=True)
 async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_messages: bool = False):
+    await ctx.defer(ephemeral=True)
     server_id = str(ctx.guild.id)  # Get the server ID
     channel_id = str(ctx.channel.id)  # Get the channel ID
 
@@ -734,7 +735,7 @@ async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_mess
     with open('spam_channels.json', 'w') as f:
         json.dump(spam_channels, f)
 
-    await ctx.send(f"Spam channel set to {ctx.channel.name}.")
+    await ctx.edit(content=f"Spam channel set to {ctx.channel.name}. Force ALL messages to this channel: {force_all_messages}. Force most messages invisible (BETA): {ephemeral_messages}")
         
 @bot.event
 async def on_ready():
