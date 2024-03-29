@@ -128,7 +128,9 @@ def format_number(num):
         return 0
     else:
         num = float(num)
-        if num >= 1e7:
+        if num >= 1e11:
+            return f'{num/1e9:,.0f} B'
+        elif num >= 1e7:
             return f'{num/1e6:,.0f} M'
         elif num >= 1e3:
             return f'{int(num):,}'
@@ -145,12 +147,14 @@ def format_number(num):
         
 async def create_table(coins_data, display_id):
     table = PrettyTable()
-    table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Market Cap', 'Δ ATH']
+    table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'Δ ATH']
     table.align = 'r'  # right-align data
     table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
     for coin_id, prices in coins_data.items():
         name = prices['name']  # Extract the name
+        if len(name) > 12:  # Check if the name is longer than 12 characters
+            name = name[:10] + '..'  # If it is, truncate it to the first 9 characters and append '...'
         market_cap = format_number(prices['market_cap']) if format_number(prices['market_cap']) != 0 else 'N/A'
         price = format_number(prices['current_price']) if prices['current_price'] else 'N/A'
         change = f"{'+-'[prices['change_24h'] < 0]}{abs(prices['change_24h']):.1f}" if prices['change_24h'] else 'N/A'
@@ -392,7 +396,6 @@ async def manage_coins(ctx, user_id, coins, action, list_name=None):
     return message
 
 async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_name=None):
-    await ctx.defer(ephemeral=True)
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) for coin in coins]
     message = await manage_coins(ctx, user_id, coins, action, list_name)
@@ -404,39 +407,40 @@ async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_
 async def check_list_name(list_name):
     return sum(c.isdigit() for c in list_name) <= 10
 
-@bot.slash_command(name="add", description="Add coins to your favorites or a list")
-async def add(ctx, coins: str, list_name: str = None):
-    if list_name:
-        if not await check_list_name(list_name):
-            await ctx.send("List name cannot contain more than 10 digits.")
-            return
-        await manage_coins_command(ctx, coins, list_name, 'add', list_name)
+@bot.slash_command(name="add", description="Add coins to your favorites or a list by name or exact ID")
+async def add(ctx, coins: str, list_name: str = None, exact_id: bool = False):
+    await ctx.defer(ephemeral=True)
+    user_id = str(ctx.author.id)
+
+    if exact_id:
+        # Check if the coin_id exists in coins
+        with open('coins.json', 'r', encoding='utf-8') as f:
+            coins_data = json.load(f)
+        if any(coin['id'] == coins for coin in coins_data):
+            # Add the coin to the favorites if it's not already there
+            message = await manage_coins(ctx, user_id, [coins], 'add')
+            await ctx.edit(content=message)
+        else:
+            await ctx.edit(content="The coin you provided is not valid.")
     else:
-        await manage_coins_command(ctx, coins, str(ctx.author.id), 'add')
+        if list_name:
+            if not await check_list_name(list_name):
+                await ctx.send("List name cannot contain more than 10 digits.")
+                return
+            await manage_coins_command(ctx, coins, list_name, 'add', list_name)
+        else:
+            await manage_coins_command(ctx, coins, user_id, 'add')
 
 @bot.slash_command(name="remove", description="Remove coins from your favorites or a list")
 async def remove(ctx, coins: str, list_name: str = None):
+    await ctx.defer(ephemeral=True)
     if list_name:
         if not await check_list_name(list_name):
-            await ctx.send("List name cannot contain more than 10 digits.")
+            await ctx.edit(content="List name cannot contain more than 10 digits.")
             return
         await manage_coins_command(ctx, coins, list_name, 'remove', list_name)
     else:
         await manage_coins_command(ctx, coins, str(ctx.author.id), 'remove')
-
-@bot.slash_command(name="id", description="Add a coin to your favorites by exact ID")
-async def add_coin(ctx, coin_id: str):
-    await ctx.defer()
-    user_id = str(ctx.author.id)
-    # Check if the coin_id exists in coins
-    with open('coins.json', 'r', encoding='utf-8') as f:
-        coins = json.load(f)
-    if any(coin['id'] == coin_id for coin in coins):
-        # Add the coin to the favorites if it's not already there
-        message = await manage_coins(ctx, user_id, [coin_id], 'add')
-        await ctx.edit(content=message)
-    else:
-        await ctx.edit(content="The coin you provided is not valid.")
 
 def save_alerts(alert, user_id, server_id):
     # Load the existing alerts from the file
