@@ -401,7 +401,7 @@ async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_
     await ctx.edit(content=message)
 
 async def check_list_name(list_name):
-    return sum(c.isdigit() for c in list_name) <= 10
+    return sum(c.isdigit() for c in list_name) <= 10 and len(list_name) <= 14
 
 @bot.slash_command(name="add", description="Add coins to your favorites or a list")
 async def manage_coins(ctx, coins: str, list_name: str = None, is_coin_id: bool = False):
