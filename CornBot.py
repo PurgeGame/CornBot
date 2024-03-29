@@ -214,10 +214,7 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None, inclu
 async def coins(ctx, list_name: Optional[str] = None, include_historical: Optional[bool] = False):
     await ctx.defer()
     user_id = str(ctx.author.id)
-    favorites = {}
-    if os.path.exists('favorites.json'):
-        with open('favorites.json', 'r') as f:
-            favorites = json.load(f)
+    favorites = load_favorites()
     if list_name:
         if list_name in favorites:
             coins = favorites[list_name]
@@ -442,7 +439,7 @@ async def save_favorites(favorites):
 
 
 async def manage_coins(ctx, user_id, coins, action, list_name=None):
-    favorites = await load_favorites()
+    favorites = load_favorites()
     key = f'{list_name}_{ctx.guild.id}' if list_name else user_id  # use the server ID and list name as the key if a list name is provided
     user_favorites = favorites.get(key, [])
     if action == 'add':
@@ -568,18 +565,17 @@ def create_alert(coin_id, alert_type, condition, target_value, cooldown_seconds,
         'channel_id': str(channel_id)
     }
 
-async def send_confirmation_message(ctx, new_alert, coin_id):
+async def send_confirmation_message(ctx, new_alert, coin_name):
     cooldown_message = ""
     if new_alert['cooldown'] is not None:
         cooldown_in_hours = new_alert['cooldown'] / 3600
         cooldown_message = f" Cooldown: {cooldown_in_hours:.0f} hours."
 
     if new_alert['alert_type'] == 'ath':
-        await ctx.edit(content=f"ATH alert set for {coin_id}.{cooldown_message}")
+        await ctx.edit(content=f"ATH alert set for {coin_name}.{cooldown_message}")
     else:
         percentage_symbol = "%" if new_alert['alert_type'] == 'change' else ""
-        await ctx.edit(content=f"{new_alert['alert_type'].capitalize()} alert set for {coin_id} {new_alert['condition']} {format_number(new_alert['target'])}{percentage_symbol}.{cooldown_message}")
-
+        await ctx.edit(content=f"{new_alert['alert_type'].capitalize()} alert set for {coin_name} {new_alert['condition']} {format_number(new_alert['target'])}{percentage_symbol}.{cooldown_message}")
 
 @bot.slash_command(name="alert", description="Set a price alert for a coin")
 async def alert(ctx, coin: str, target: str, cooldown: int = None):
@@ -595,12 +591,13 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
     # Get the current price of the coin to determine direction
     coin_data = await fetch_coin_data([coin_id])
     current_price = coin_data[coin_id]['current_price']
+    coin_name = coin_data[coin_id]['name']  # Use the coin's name
     condition = get_condition(alert_type, current_price, target_value)
     cooldown_seconds = cooldown * 3600 if cooldown is not None else None
     new_alert = create_alert(coin_id, alert_type, condition, target_value, cooldown_seconds, ctx.channel.id)
     save_alerts(new_alert, user_id, server_id)
 
-    await send_confirmation_message(ctx, new_alert, coin_id)
+    await send_confirmation_message(ctx, new_alert, coin_name)
 
 
 @bot.slash_command(name="clear", description="Clear all alerts and/or favorites for a user")
@@ -677,8 +674,10 @@ async def check_alerts(data):
 
     for server_id, server_alerts in alerts.items():
         for user_id, user_alerts in server_alerts.items():
-            for alert in user_alerts.copy():  # Iterate over a copy of the list
+            new_user_alerts = []  # Create a new list to store the alerts that should not be removed
+            for alert in user_alerts:  # No need to copy the list anymore
                 if alert['coin'] in data:
+                    coin_name = data[alert['coin']]['name']  # Use the coin's name
                     current_price = data[alert['coin']]['current_price']
                     change_24h = data[alert['coin']]['change_24h']
                     ath = data[alert['coin']]['ath']  # Update ATH
@@ -691,17 +690,26 @@ async def check_alerts(data):
                     channel = await bot.fetch_channel(int(channel_id))
 
                     if alert['alert_type'] == 'price' and check_price_alert(alert, current_price):
-                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"price is now {alert['condition']} {alert['target']}")
+                        alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"price is now {alert['condition']} {alert['target']}")
+                        if cooldown is None:
+                            continue  # Don't add the alert to the new list
 
                     elif alert['alert_type'] == 'change' and check_change_alert(alert, change_24h):
                         change_type = "up" if change_24h > 0 else "down"
-                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"is {change_type} {abs(round(change_24h,1))}% in the last 24h")
+                        alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"is {change_type} {abs(round(change_24h,1))}% in the last 24h")
+                        if cooldown is None:
+                            continue  # Don't add the alert to the new list
 
                     elif alert['alert_type'] == 'ath' and check_ath_alert(alert, ath_date):
-                        alert['last_triggered'] = await send_alert(channel, user_id, alert['coin'], f"price has reached a new All-Time High of {ath}!")
+                        alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"price has reached a new All-Time High of {ath}!")
+                        if cooldown is None:
+                            continue  # Don't add the alert to the new list
 
-                    if cooldown is None:
-                        user_alerts.remove(alert)  # Remove the alert
+                # If the alert should not be removed, add it to the new list
+                new_user_alerts.append(alert)
+
+            # Replace the old list of alerts with the new one
+            server_alerts[user_id] = new_user_alerts
 
     # Save the alerts
     with open('alerts.json', 'w') as f:
