@@ -157,17 +157,17 @@ async def create_table(coins_data, display_id, include_historical=False):
     table.align = 'r'  # right-align data
     table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
-    for coin_id, prices in coins_data.items():
-        name = truncate_name(prices['name'])
-        market_cap = format_number(prices['market_cap']) if format_number(prices['market_cap']) != 0 else 'N/A'
-        price = format_number(prices['current_price']) if prices['current_price'] else 'N/A'
-        change_24h = format_change(prices['change_24h'])
-        ath_change = format_change(prices['ath_change_percentage'])
+    for coin_id, coin_data in coins_data.items():  # renamed from prices to coin_data
+        name = truncate_name(coin_data['name'])
+        market_cap = format_number(coin_data['market_cap']) if format_number(coin_data['market_cap']) != 0 else 'N/A'
+        price = format_number(coin_data['current_price']) if coin_data['current_price'] else 'N/A'
+        change_24h = format_change(coin_data['change_24h'])
+        ath_change = format_change(coin_data['ath_change_percentage'])
 
         if include_historical:
-            change_7d = format_change(prices.get('change_7d'))
-            change_30d = format_change(prices.get('change_30d'))
-            change_1y = format_change(prices.get('change_1y'))
+            change_7d = format_change(coin_data.get('change_7d'))
+            change_30d = format_change(coin_data.get('change_30d'))
+            change_1y = format_change(coin_data.get('change_1y'))
             row_data = [name if not display_id else coin_id, price, market_cap, change_24h, change_7d, change_30d, change_1y, ath_change]
         else:
             row_data = [name if not display_id else coin_id, price, change_24h, market_cap, ath_change]
@@ -175,7 +175,6 @@ async def create_table(coins_data, display_id, include_historical=False):
         table.add_row(row_data)
 
     return table
-
 def truncate_name(name, max_length=15):
     return name[:max_length-2] + '..' if len(name) > max_length else name
 
@@ -231,8 +230,8 @@ async def coins(ctx, list_name: Optional[str] = None, include_historical: Option
     else:
         await ctx.edit(content="You don't have any favorite coins saved.")
         return
-    prices = await fetch_coin_data(coins)
-    await display_coins(ctx, prices, list_name=list_name, include_historical=include_historical)
+    coin_data = await fetch_coin_data(coins)  # renamed from prices to coin_data
+    await display_coins(ctx, coin_data, list_name=list_name, include_historical=include_historical)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str, num: Optional[int] = 10):
@@ -240,8 +239,8 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
     url = f'https://api.coingecko.com/api/v3/search?query={query}'
     matching_coins = await fetch_data_from_api(url)
     matching_ids = [coin['id'] for coin in matching_coins['coins'][:num]]
-    prices = await fetch_coin_data(matching_ids)
-    await display_coins(ctx, prices, display_id=True)
+    coin_data = await fetch_coin_data(matching_ids)
+    await display_coins(ctx, coin_data, display_id=True)
 
 def get_emoji(action,coin):
     neutral_emojis = ['<:glasses:958216013529366528> ', '<:scam:1059964673530806283> ', '<:shrug:1203958281094299678>','<a:nfa:1042264955879166003> ' ] # Replace with your actual neutral emojis
@@ -265,13 +264,15 @@ async def ofa(ctx):
     favorites = load_favorites()
     coins = get_coins(user_id, favorites)
     coin = random.choice(coins)
-    prices = await fetch_coin_data([coin])
-    price = prices[coin]['current_price']
+    coin_data = await fetch_coin_data([coin])  # renamed from prices to coin_data
+    price = coin_data[coin]['current_price']
+    name = coin_data[coin]['name']
     leverage = get_leverage()
     action = get_action(leverage)
     emoji = get_emoji(action,coin)
-    buy_time, buy_price = get_buy_time_and_price(prices, coin, price)
-    await send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji)
+    buy_time, buy_price = get_buy_time_and_price(coin_data, coin, price)  # renamed from prices to coin_data
+
+    await send_advice(ctx, action, name, buy_time, buy_price, leverage, emoji)
 
 def get_coins(user_id, favorites):
     coins = []
@@ -310,17 +311,17 @@ def calculate_change_date(change_key):
     else:
         return 'now'
 
-def get_valid_change(prices, coin):
+def get_valid_change(coin_data, coin):
     while True:
         change_key = random.choice(['change_24h', 'change_7d', 'change_30d', 'change_1y'])
-        change = prices[coin].get(change_key)
+        change = coin_data[coin].get(change_key)
         if change is not None:
             return change_key, change / 100  # Return the key and the change value as a decimal
 
-def get_buy_time_and_price(prices, coin, price):
+def get_buy_time_and_price(coin_data, coin, price):
     rand = random.random()
     if rand < .1:
-        change_key, change = get_valid_change(prices, coin)
+        change_key, change = get_valid_change(coin_data, coin)
         change_date = calculate_change_date(change_key)
         if change < 0:  # Price decreased
             approx_price = price / (1 - change)
@@ -328,15 +329,15 @@ def get_buy_time_and_price(prices, coin, price):
             approx_price = price / (1 + change)
         return change_date, approx_price
     elif rand < 0.6:
-        return 'NOW', price
+        return 'now', price
     elif rand < 0.75:
-        return 'TOMORROW', price * (1 + random.uniform(-0.2, 0.2))
+        return 'tomorrow', price * (1 + random.uniform(-0.2, 0.2))
     elif rand < 0.9:
-        return 'NEXT WEEK', price * (1 + random.uniform(-0.2, 0.2))
+        return 'next week', price * (1 + random.uniform(-0.2, 0.2))
     else:
-        date = datetime.datetime.strptime(prices[coin]["ath_date"], '%Y-%m-%dT%H:%M:%S.%fZ')
+        date = datetime.strptime(coin_data[coin]["ath_date"], '%Y-%m-%dT%H:%M:%S.%fZ')
         date = date.strftime('%B %d, %Y')  # Format the date as 'Month Day, Year'
-        return f'on {date}', prices[coin]['ath']
+        return f'on {date}', coin_data[coin]['ath']
 
 async def send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji):
     if leverage is None:
