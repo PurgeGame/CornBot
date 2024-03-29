@@ -96,7 +96,8 @@ async def check_coin(coin):
         return False
 
 @bot.slash_command(name="price", description="Show the current price for a coin")
-async def price(ctx, coins: str):
+async def price(ctx, coins: str, include_historical: bool = False):
+    
     await ctx.defer()
     # Split the coins parameter by commas to get a list of coins
     coins = [coin.strip() for coin in coins.split(',')]
@@ -107,8 +108,8 @@ async def price(ctx, coins: str):
             continue
         data = await fetch_coin_data([coin_id])
         if data and coin_id in data:
-            coins_data[coin_id] = data[coin_id]
-    await display_coins(ctx, coins_data)
+            coins_data[coin_id] = data[coin_id]       
+    await display_coins(ctx, coins_data, include_historical = include_historical)
 
 def is_number(n):
     try:
@@ -145,23 +146,41 @@ def format_number(num):
         else:
             return round_sig(num, 2)
         
-async def create_table(coins_data, display_id):
-    table = PrettyTable()
-    table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'Δ ATH']
+async def create_table(coins_data, display_id, include_historical=False):
+    print(include_historical)
+    if include_historical:
+        table = PrettyTable()
+        table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'Δ 7d', 'Δ 30d', 'Δ 1y', 'M Cap', 'Δ ATH']
+    else:
+        table = PrettyTable()
+        table.field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'Δ ATH']
     table.align = 'r'  # right-align data
     table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
     for coin_id, prices in coins_data.items():
+        print(f"prices for {coin_id}: {prices}")
         name = prices['name']  # Extract the name
-        if len(name) > 12:  # Check if the name is longer than 12 characters
-            name = name[:10] + '..'  # If it is, truncate it to the first 9 characters and append '...'
+        if len(name) > 15:  # Check if the name is longer than 12 characters
+            name = name[:13] + '..'  # If it is, truncate it to the first 9 characters and append '...'
         market_cap = format_number(prices['market_cap']) if format_number(prices['market_cap']) != 0 else 'N/A'
         price = format_number(prices['current_price']) if prices['current_price'] else 'N/A'
-        change = f"{'+-'[prices['change_24h'] < 0]}{abs(prices['change_24h']):.1f}" if prices['change_24h'] else 'N/A'
+        change_24h = f"{'+-'[prices['change_24h'] < 0]}{abs(prices['change_24h']):.1f}" if prices['change_24h'] else 'N/A'
         ath_change = f"{prices['ath_change_percentage']:02.0f}%" if prices['ath_change_percentage'] else 'N/A'
 
+        if include_historical:
+            change_7d = f"{'+-'[prices['change_7d'] < 0]}{abs(prices['change_7d']):.1f}" if 'change_7d' in prices else 'N/A'
+            change_30d = f"{'+-'[prices['change_30d'] < 0]}{abs(prices['change_30d']):.1f}" if 'change_30d' in prices else 'N/A'
+            change_1y = f"{'+-'[prices['change_1y'] < 0]}{abs(prices['change_1y']):.1f}" if 'change_1y' in prices else 'N/A'
+        else:
+            change_7d = 'N/A'
+            change_30d = 'N/A'
+            change_1y = 'N/A'
+
         name_or_id = name if not display_id else coin_id  # Use the name if display_id is False
-        table.add_row([name_or_id, price, f'{change}%', f'{market_cap}', ath_change])
+        if include_historical:
+            table.add_row([name_or_id, price, f'{change_24h}%', f'{change_7d}%', f'{change_30d}%', f'{change_1y}%', f'{market_cap}', ath_change])
+        else:
+            table.add_row([name_or_id, price, f'{change_24h}%', f'{market_cap}', ath_change])
 
     return table
 
@@ -175,14 +194,14 @@ async def split_table(table):
         messages.append(f'```\n{table}\n```')
     return messages
 
-async def display_coins(ctx, coins_data, display_id=False, list_name=None):
+async def display_coins(ctx, coins_data, display_id=False, list_name=None, include_historical=False):
     filtered_coins = {coin_id: coin_data for coin_id, coin_data in coins_data.items()}
 
     if not filtered_coins:
         await ctx.edit(content='No coins with a market cap of $1 million or more were found.')
         return
 
-    table = await create_table(filtered_coins, display_id)
+    table = await create_table(filtered_coins, display_id, include_historical)
     messages = await split_table(table)
 
     if list_name:
@@ -193,7 +212,7 @@ async def display_coins(ctx, coins_data, display_id=False, list_name=None):
         await ctx.send(content=message)
             
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
-async def coins(ctx, list_name: Optional[str] = None):
+async def coins(ctx, list_name: Optional[str] = None, include_historical: Optional[bool] = False):
     await ctx.defer()
     user_id = str(ctx.author.id)
     favorites = {}
@@ -213,7 +232,7 @@ async def coins(ctx, list_name: Optional[str] = None):
         await ctx.edit(content="You don't have any favorite coins saved.")
         return
     prices = await fetch_coin_data(coins)
-    await display_coins(ctx, prices, list_name=list_name)
+    await display_coins(ctx, prices, list_name=list_name, include_historical=include_historical)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str, num: Optional[int] = 10):
@@ -483,10 +502,6 @@ async def get_alert_type_and_value(target):
         except ValueError:
             return None, None
 
-async def get_current_price(coin_id):
-    coin_data = await fetch_coin_data([coin_id])
-    return coin_data[coin_id]['current_price']
-
 def get_condition(alert_type, current_price, target_value):
     if alert_type == 'price':
         return '>' if current_price < target_value else '<'
@@ -526,17 +541,15 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
     if not coin_id:
         await ctx.edit(content="Invalid coin")
         return
-
     alert_type, target_value = await get_alert_type_and_value(target)
     if alert_type is None or target_value is None:
         await ctx.edit(content="Invalid target")
         return
-
-    current_price = await get_current_price(coin_id)
+    #Get the current price of the coin to determine direction
+    coin_data = await fetch_coin_data([coin_id])
+    current_price = coin_data[coin_id]['current_price']
     condition = get_condition(alert_type, current_price, target_value)
-
     cooldown_seconds = cooldown * 3600 if cooldown is not None else None
-
     new_alert = create_alert(coin_id, alert_type, condition, target_value, cooldown_seconds, ctx.channel.id)
     save_alerts(new_alert, user_id, server_id)
 
