@@ -3,3 +3,6 @@ myenv/
 *.json
 !coins.json
 !/historical/data_2024-04-26.json
+!favorite_coins_fallback.json
+!alerts_fallback.json
+!favorite_runes_fallback.json

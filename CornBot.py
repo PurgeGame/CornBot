@@ -15,9 +15,24 @@ from datetime import datetime, timezone, timedelta
 from utils import *
 from ofa import *
 import glob
+import shutil
 load_dotenv()
 coin_data = {}
 runes_data = {}
+
+def check_and_copy_files(file_paths, fallback_paths):
+    for file_path, fallback_path in zip(file_paths, fallback_paths):
+        if not os.path.exists(file_path):
+            if os.path.exists(fallback_path):
+                shutil.copy(fallback_path, file_path)
+            else:
+                print(f"Neither the file {file_path} nor the fallback {fallback_path} exists.")
+
+# List of file paths and their corresponding fallback paths
+file_paths = ['favorite_coins.json', 'alerts.json', 'favorite_runes.json']
+fallback_paths = ['favorite_coins_fallback.json', 'alerts_fallback.json', 'favorite_runes_fallback.json']
+
+check_and_copy_files(file_paths, fallback_paths)
 
 def print_favorite_runes(user_id):
     # Load the favorite runes from the JSON file
