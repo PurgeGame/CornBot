@@ -40,6 +40,9 @@ def parse_date(input_date):
     Returns:
     datetime: The parsed datetime object, or None if no format matched.
     """
+    if input_date is None:
+        return datetime(2024, 1, 1).strftime("%d-%m-%Y %H:%M")
+
     expected_formats = ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d", "%d-%m-%Y %H:%M"]
 
     for fmt in expected_formats:
@@ -48,7 +51,7 @@ def parse_date(input_date):
             return date.strftime("%d-%m-%Y %H:%M")
         except ValueError:
             continue
-    return None
+    return datetime(2024, 1, 1).strftime("%d-%m-%Y %H:%M")
 
 
 
