@@ -1048,7 +1048,7 @@ async def update_activity():
     price_btc, change, gecko = await get_coin_data(coins_list)
 
     await parse_rune_data(runes_list)
-    price_btc = format_number(price_btc)
+    price_btc = format_number(price_btc,bitcoin=True)
     save_historical_data()
     await check_alerts()
 

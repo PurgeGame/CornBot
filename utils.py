@@ -32,7 +32,7 @@ def convert_to_float(value):
 
 
 
-def format_number(num, integer=False):
+def format_number(num, integer=False,bitcoin = False):
     if num is None or not is_number(num):
         return 0
     else:
@@ -43,7 +43,7 @@ def format_number(num, integer=False):
             return f'{num/1e9:,.0f} B'
         elif num >= 1e6:
             return f'{num/1e6:,.0f} M'
-        elif num >= 1e4:
+        elif num >= 1e4 and bitcoin == False:
             return f'{num/1000:,.0f} K'
         elif num >= 1e3:
             return f'{int(num):,}'
