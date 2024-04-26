@@ -510,7 +510,7 @@ async def parse_rune_data(rune_list):
         market_cap_in_usd = market_cap_in_btc * btc_price_in_usd
 
         # Get the current time
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         # If it's :00 or :01, update the price list
         if now.minute in [0, 1]:
@@ -546,11 +546,11 @@ async def parse_rune_data(rune_list):
         if coin_id not in runes_data:
             runes_data[coin_id] = {}
             ath = current_price
-            ath_date = now.strftime('%Y-%m-%d')
+            ath_date = now.strftime("%Y-%m-%dT%H:%M%z")
         else:
             if runes_data[coin_id].get('ath') is None:
                 ath = current_price
-                ath_date = now.strftime('%Y-%m-%d')
+                ath_date = now.strftime("%Y-%m-%dT%H:%M%z")
             else:
                 if runes_data[coin_id]['ath'] != 0:
                     ath_change_percentage = ((current_price - runes_data[coin_id]['ath']) / runes_data[coin_id]['ath']) * 100
@@ -558,7 +558,7 @@ async def parse_rune_data(rune_list):
                     ath_change_percentage = None  # or some other value that makes sense in your context
                 if current_price > runes_data[coin_id]['ath']:
                     ath = current_price
-                    ath_date = now.strftime('%Y-%m-%d')
+                    ath_date = now.strftime("%Y-%m-%dT%H:%M%z")
 
         runes_data[coin_id].update({
             'name': name,
