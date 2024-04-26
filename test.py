@@ -280,8 +280,8 @@ async def get_my_runes(address,rune):
             else:
                 return {}
 
-@bot.slash_command(name="myrunes", description="Show your runes")
-async def myrunes(ctx, update_quantity: Optional[bool] = False, address: Optional[str] = None,):
+@bot.slash_command(name="runes", description="Show your runes")
+async def runes(ctx, update_quantity: Optional[bool] = False, address: Optional[str] = None,):
     global runes_data
     await ctx.defer()
     user_id = str(ctx.author.id)
