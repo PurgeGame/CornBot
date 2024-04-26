@@ -461,7 +461,7 @@ def parse_data(data):
         name = coin['name']  # Extract the name
         current_price = coin['current_price']
         ath = coin['ath']
-        ath_date = coin['ath_date']
+        ath_date = parse_date(coin['ath_date'])
         market_cap = coin['market_cap']
         market_cap_rank = coin['market_cap_rank']
         change_1y = coin.get('price_change_percentage_1y_in_currency')
@@ -510,7 +510,8 @@ async def parse_rune_data(rune_list):
         market_cap_in_usd = market_cap_in_btc * btc_price_in_usd
 
         # Get the current time
-        now = datetime.now(timezone.utc)
+        now = datetime.now()
+    
 
         # If it's :00 or :01, update the price list
         if now.minute in [0, 1]:
@@ -538,19 +539,20 @@ async def parse_rune_data(rune_list):
         ath_change_percentage = None
         if coin_id in runes_data:
             ath = runes_data[coin_id].get('ath', None)
-            ath_date = runes_data[coin_id].get('ath_date', None)
+            ath_date = parse_date(runes_data[coin_id].get('ath_date', None))
         else:
             ath_date = None
             ath = None
+        now = now.strftime("%d-%m-%Y %H:%M")
         # Update the rune data in runes_data or add it if it doesn't exist
         if coin_id not in runes_data:
             runes_data[coin_id] = {}
             ath = current_price
-            ath_date = now.strftime("%Y-%m-%dT%H:%M%z")
+            ath_date = now
         else:
             if runes_data[coin_id].get('ath') is None:
                 ath = current_price
-                ath_date = now.strftime("%Y-%m-%dT%H:%M%z")
+                ath_date = now
             else:
                 if runes_data[coin_id]['ath'] != 0:
                     ath_change_percentage = ((current_price - runes_data[coin_id]['ath']) / runes_data[coin_id]['ath']) * 100
@@ -558,7 +560,7 @@ async def parse_rune_data(rune_list):
                     ath_change_percentage = None  # or some other value that makes sense in your context
                 if current_price > runes_data[coin_id]['ath']:
                     ath = current_price
-                    ath_date = now.strftime("%Y-%m-%dT%H:%M%z")
+                    ath_date = now
 
         runes_data[coin_id].update({
             'name': name,
@@ -639,7 +641,7 @@ async def get_coin_data(coins):
     if not coingecko_success:
         btc_price = await fetch_bitcoin_price_fallback()
         if btc_price:
-            coin_data['bitcoin']['current_price'] = btc_price
+            coin_data['bitcoin']['current_price'] = btc_price['current_price']
     if coingecko_success and 'change_24h' in coin_data['bitcoin']:
         change_btc = coin_data['bitcoin']['change_24h']
     else:
@@ -960,8 +962,9 @@ def check_change_alert(alert, change_24h):
 
 def check_ath_alert(alert, ath_date):
     if ath_date is not None:
-        ath_date = datetime.fromisoformat(ath_date.replace("Z", "+00:00"))
-        return (datetime.now(timezone.utc) - ath_date).total_seconds() <= 600
+
+        ath_date = parse_date(ath_date)
+        return (datetime.now() - ath_date).total_seconds() <= 600
     return False
 
 async def check_alerts():
@@ -981,7 +984,7 @@ async def check_alerts():
                     current_price = coin_info['current_price']  # Corrected line
                     change_24h = coin_info['change_24h']  # Corrected line
                     ath = coin_info['ath']  # Corrected line
-                    ath_date = datetime.strptime(coin_info['ath_date'], "%Y-%m-%d").strftime("%Y-%m-%dT%H:%M+00:00")                    
+                    ath_date = parse_date(coin_info['ath_date'])               
                     cooldown = alert.get('cooldown')  
                     last_triggered = alert.get('last_triggered', 0)  
                     if cooldown is not None and time.time() - last_triggered < cooldown:
@@ -1069,9 +1072,8 @@ def save_historical_data():
     global runes_data
     # Get the current date and time
     now = datetime.now()
-
     # Check if it's around midnight
-    if now.hour == 0 and now.minute <10:
+    if now.hour == 17 and now.minute <15:
         # Format the current date as a string
         date_str = now.strftime('%Y-%m-%d')
 

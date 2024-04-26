@@ -1,7 +1,7 @@
 import math
 import json
 import os
-import datetime
+from datetime import datetime
 
 def is_number(n):
     try:
@@ -29,6 +29,26 @@ def convert_to_float(value):
         multiplier = 1e9
         value = value.replace('B', '')
     return float(value) * multiplier
+
+def parse_date(input_date):
+    """
+    Parse a date string using a list of expected formats.
+
+    Parameters:
+    input_date (str): The date string to parse.
+
+    Returns:
+    datetime: The parsed datetime object, or None if no format matched.
+    """
+    expected_formats = ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%d", "%d-%m-%Y %H:%M"]
+
+    for fmt in expected_formats:
+        try:
+            date = datetime.strptime(input_date, fmt)
+            return date.strftime("%d-%m-%Y %H:%M")
+        except ValueError:
+            continue
+    return None
 
 
 
