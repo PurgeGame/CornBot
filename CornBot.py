@@ -216,7 +216,7 @@ async def create_table_runes(runes,user_id):
         volume_24h = format_number(int(rune_data['volume_24h']) * sat_price) if rune_data['volume_24h'] else 'N/A'
 
         
-        value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True) if quantity_owned is not None and price != 'N/A' else 'N/A'
+        value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
   
        
         if volume_24h == 'N/A' or rune_data['volume_24h'] < 2000000:
@@ -266,7 +266,7 @@ async def display_coins(ctx, coins_data, display_id=False, include_historical=Fa
 async def display_runes(ctx, runes_data):
     table, total_value,ath = await create_table_runes(runes_data, str(ctx.author.id))
     messages = await split_table(table)
-    total_value = format_number_with_symbol(total_value,'USD',True)
+    total_value = format_number_with_symbol(total_value,'USD',True,bitcoin=True)
     await ctx.edit(content=messages[0])
     for message in messages[1:]:
         await ctx.send(content=message)

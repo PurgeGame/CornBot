@@ -60,8 +60,8 @@ def format_number(num, integer=False,bitcoin = False):
         else:
             return round_sig(num, 2)
         
-def format_number_with_symbol(num, symbol,integer=False):
-        formatted_number = str(format_number(num,integer))
+def format_number_with_symbol(num, symbol,integer=False,bitcoin = False):
+        formatted_number = str(format_number(num,integer,bitcoin=bitcoin))
         if symbol == 'USD':
             return f'${formatted_number}'
         return f'{formatted_number} {symbol}'
