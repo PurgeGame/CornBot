@@ -906,22 +906,26 @@ def check_ath_alert(alert, ath_date):
         return (datetime.now(timezone.utc) - ath_date).total_seconds() <= 600
     return False
 
-async def check_alerts(data):
+async def check_alerts():
+    global coin_data
+    global runes_data
     alerts = load_json_file('alerts.json')
     spam_channels = load_json_file('spam_channels.json')
 
     for server_id, server_alerts in alerts.items():
         for user_id, user_alerts in server_alerts.items():
-            new_user_alerts = []  # Create a new list to store the alerts that should not be removed
-            for alert in user_alerts:  # No need to copy the list anymore
+            new_user_alerts = []  
+            for alert in user_alerts:  
+                data = runes_data if is_rune(alert['coin']) else coin_data
                 if alert['coin'] in data:
-                    coin_name = data[alert['coin']]['name']  # Use the coin's name
-                    current_price = data[alert['coin']]['current_price']
-                    change_24h = data[alert['coin']]['change_24h']
-                    ath = data[alert['coin']]['ath']  # Update ATH
-                    ath_date = datetime.strptime(data[alert['coin']]['ath_date'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=timezone.utc).strftime("%Y-%m-%dT%H:%M+00:00")
-                    cooldown = alert.get('cooldown')  # Get the cooldown, or None if it's not present
-                    last_triggered = alert.get('last_triggered', 0)  # Get the last_triggered, or 0 if it's not present
+                    coin_info = data[alert['coin']]  # Corrected line
+                    coin_name = coin_info['name']  # Corrected line
+                    current_price = coin_info['current_price']  # Corrected line
+                    change_24h = coin_info['change_24h']  # Corrected line
+                    ath = coin_info['ath']  # Corrected line
+                    ath_date = datetime.strptime(coin_info['ath_date'], "%Y-%m-%d").strftime("%Y-%m-%dT%H:%M+00:00")                    
+                    cooldown = alert.get('cooldown')  
+                    last_triggered = alert.get('last_triggered', 0)  
                     if cooldown is not None and time.time() - last_triggered < cooldown:
                         continue
                     channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
@@ -930,29 +934,25 @@ async def check_alerts(data):
                     if alert['alert_type'] == 'price' and check_price_alert(alert, current_price):
                         alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"price is now {alert['condition']} {alert['target']}")
                         if cooldown is None:
-                            continue  # Don't add the alert to the new list
+                            continue  
 
                     elif alert['alert_type'] == 'change' and check_change_alert(alert, change_24h):
                         change_type = "up" if change_24h > 0 else "down"
                         alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"is {change_type} {abs(round(change_24h,1))}% in the last 24h")
                         if cooldown is None:
-                            continue  # Don't add the alert to the new list
+                            continue  
 
                     elif alert['alert_type'] == 'ath' and check_ath_alert(alert, ath_date):
                         alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"price has reached a new All-Time High of {ath}!")
                         if cooldown is None:
-                            continue  # Don't add the alert to the new list
+                            continue  
 
-                # If the alert should not be removed, add it to the new list
                 new_user_alerts.append(alert)
 
-            # Replace the old list of alerts with the new one
             server_alerts[user_id] = new_user_alerts
 
-    # Save the alerts
     with open('alerts.json', 'w') as f:
         json.dump(alerts, f)
-
 @bot.slash_command(name="set_spam_channel", description="Set the current channel as the server's spam channel")
 @commands.has_permissions(manage_channels=True)
 async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_messages: bool = False):
@@ -1050,6 +1050,7 @@ async def update_activity():
     await parse_rune_data(runes_list)
     price_btc = format_number(price_btc)
     save_historical_data()
+    await check_alerts()
     if not gecko:
         if price_btc == .999:
             return
