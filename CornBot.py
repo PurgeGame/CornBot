@@ -1051,6 +1051,7 @@ async def update_activity():
     price_btc = format_number(price_btc)
     save_historical_data()
     await check_alerts()
+
     if not gecko:
         if price_btc == .999:
             return
