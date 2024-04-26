@@ -19,6 +19,20 @@ load_dotenv()
 coin_data = {}
 runes_data = {}
 
+def print_favorite_runes(user_id):
+    # Load the favorite runes from the JSON file
+    with open('favorite_runes.json', 'r') as f:
+        favorites_runes = json.load(f)
+
+    # Get the user's favorite runes
+    user_runes_dict = favorites_runes.get(str(user_id), {'runes': {}})
+    user_favorites_runes = user_runes_dict['runes']
+
+    # Create a comma-separated string of the favorite runes
+    favorite_runes_str = ','.join(user_favorites_runes)
+
+    print(favorite_runes_str)
+
 def load_most_recent_json():
     global coin_data
     global runes_data
@@ -315,7 +329,8 @@ async def runes(ctx, update_quantity: Optional[bool] = False, address: Optional[
             if user_data is None:
                 await ctx.edit(content="User not found.")
                 return None
-            address = user_data['address']
+            if 'address' in user_data:  # Check if the 'address' key exists in the user_data dictionary
+                address = user_data['address']
     else:
         add_or_update_user_address(user_id, address)
     runes = load_user_runes(user_id)
@@ -335,7 +350,9 @@ async def runes(ctx, update_quantity: Optional[bool] = False, address: Optional[
         return
     else:
          await fetch_coin_data(runes)
+
     filtered_runes_data = {rune: runes_data[rune] for rune in runes if rune in runes_data}
+
     await display_runes(ctx, filtered_runes_data)
 
 def add_rune_data(user_id, rune_data):
@@ -388,6 +405,7 @@ async def ofa(ctx):
     global coin_data
     global runes_data
     user_id = str(ctx.author.id)
+    #print_favorite_runes(user_id)
     leverage = get_leverage()
     action = get_action(leverage)
     
