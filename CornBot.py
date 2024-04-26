@@ -672,6 +672,8 @@ async def manage_coins(ctx, user_id, coins, action):
     removed_runes = []
     if action == 'add':
         for coin in coins:
+            if isinstance(coin, bool):
+                continue  # Skip this iteration if coin is a boolean
             if is_rune(coin):
                 if coin not in user_favorites_runes:
                     user_favorites_runes[coin] = {}  # Initialize the rune as a dictionary
@@ -758,7 +760,7 @@ async def add(ctx, coins: str, get_quant:bool = False, exact_id: bool = False):
             valid_coins.append(rune_name)
               
     coins = valid_coins
-    coins_str = ",".join(coins)  # Join the coins back into a string
+    coins_str = ",".join(coin for coin in coins if not isinstance(coin, bool))
     if exact_id:
         # Check if the coin_id exists in coins
         with open('coins.json', 'r', encoding='utf-8') as f:
