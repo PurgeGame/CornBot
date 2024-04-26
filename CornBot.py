@@ -395,14 +395,22 @@ async def ofa(ctx):
         favorite_coins = load_favorites("coins")
         coins = get_coins(user_id, favorite_coins)
         coin = random.choice(coins)
-        price = coin_data[coin]['current_price']
+        if coin in coin_data:  # Check if the key exists in the dictionary
+            price = coin_data[coin]['current_price']
+        else:
+            await ctx.edit(content=f"add more coins bugged.")
+            return
         name = coin_data[coin]['name']
         buy_time, buy_price = get_buy_time_and_price(coin_data, coin, price)  # renamed from prices to coin_data
         emoji = get_emoji(action,coin)
     else:
         favorite_runes = load_favorites("runes")
         runes = get_all_runes(favorite_runes)
-        rune = random.choice(runes)
+        if runes:  # Check if the list is not empty
+            rune = random.choice(runes)
+        else:
+            await ctx.edit(content="You don't have any favorite runes saved, add one so this doesn't break til I fix it")
+            return          
         price = runes_data[rune]['current_price']
         name = runes_data[rune]['name']
         buy_time, buy_price = get_buy_time_and_price(runes_data, rune, price)
