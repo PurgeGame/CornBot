@@ -14,9 +14,32 @@ import time
 from datetime import datetime, timezone, timedelta
 from utils import *
 from ofa import *
+import glob
+load_dotenv()
 coin_data = {}
 runes_data = {}
-load_dotenv()
+
+def load_most_recent_json():
+    global coin_data
+    global runes_data
+    # Get a list of all JSON files in the 'historical' folder
+    files = glob.glob('historical/*.json')
+
+    # Sort the files by modification time
+    files.sort(key=os.path.getmtime)
+
+    # Get the most recent file
+    most_recent_file = files[-1]
+
+    # Load the data from the most recent file
+    with open(most_recent_file, 'r') as f:
+        data = json.load(f)
+    coin_data = data.get('coin_data', {})
+    runes_data = data.get('runes_data', {})
+    return data
+
+load_most_recent_json()
+
 class CustomContext(commands.Context):
     async def send(self, content=None, **kwargs):
         server_id = str(self.guild.id)
@@ -189,13 +212,14 @@ async def create_table_runes(runes,user_id):
         market_cap = format_number(rune_data['market_cap']) if format_number(rune_data['market_cap']) != 0 else 'N/A'
         price = format_number(rune_data['current_price']) if rune_data['current_price'] else 'N/A'
         change_24h = format_change(rune_data['change_24h']) if rune_data['change_24h'] else 'N/A'
-        volume_24h = format_number(rune_data['volume_24h']) if rune_data['volume_24h'] else 'N/A'
         sat_price = float(coin_data['bitcoin']['current_price']) / 100000000
+        volume_24h = format_number(int(rune_data['volume_24h']) * sat_price) if rune_data['volume_24h'] else 'N/A'
+
         
         value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True) if quantity_owned is not None and price != 'N/A' else 'N/A'
   
        
-        if volume_24h == 'N/A' or rune_data['volume_24h'] < 10000:
+        if volume_24h == 'N/A' or rune_data['volume_24h'] < 2000000:
             volume_24h = 0
             price = 'N/A'
             market_cap = 'N/A'
@@ -204,8 +228,6 @@ async def create_table_runes(runes,user_id):
         if value != 'N/A':
             total_value += quantity_owned * unformatted_price * sat_price
         quantity_owned = format_number_with_symbol(quantity_owned,symbol) if quantity_owned is not None else '0'
-        print(value)
-        print(total_value)
         row_data = [name, price, change_24h, market_cap, volume_24h, quantity_owned, value]
         rows.append(row_data)  # Add the row data to the list
 
@@ -251,9 +273,9 @@ async def display_runes(ctx, runes_data):
 
     # Send a message about the total value
     if ath:
-        await ctx.send(content=f'Total Value: {total_value}, a new ATH!')
+        await ctx.send(content=f'Total portfolio value: {total_value}, a new ATH!')
     else:
-        await ctx.send(content=f'Total Value: {total_value}')
+        await ctx.send(content=f'Total potrfolio value: {total_value}')
             
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx, include_historical: Optional[bool] = False):
@@ -452,7 +474,7 @@ async def parse_rune_data(rune_list):
         # If it's :00 or :01, update the price list
         if now.minute in [0, 1]:
             # If the coin data doesn't exist, initialize it with an empty list
-            if coin_id not in runes_data:
+            if coin_id not in runes_data or 'price_list' not in runes_data[coin_id]:
                 runes_data[coin_id] = {'price_list': []}
 
             # If the price list has more than 24 items, remove the oldest one
@@ -464,6 +486,7 @@ async def parse_rune_data(rune_list):
                 runes_data[coin_id]['price_list'] = []
 
             runes_data[coin_id]['price_list'].append(current_price)
+
         # Calculate the percentage change in the current price versus the oldest data in the price list
         # Only when the price list has a full 24 hours of data
         if coin_id in runes_data and 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) == 24:
@@ -471,24 +494,45 @@ async def parse_rune_data(rune_list):
             change_24h = ((current_price - oldest_price) / oldest_price) * 100
         else:
             change_24h = None
-
+        ath_change_percentage = None
+        if coin_id in runes_data:
+            ath = runes_data[coin_id].get('ath', None)
+            ath_date = runes_data[coin_id].get('ath_date', None)
+        else:
+            ath_date = None
+            ath = None
         # Update the rune data in runes_data or add it if it doesn't exist
         if coin_id not in runes_data:
             runes_data[coin_id] = {}
+            ath = current_price
+            ath_date = now.strftime('%Y-%m-%d')
+        else:
+            if runes_data[coin_id].get('ath') is None:
+                ath = current_price
+                ath_date = now.strftime('%Y-%m-%d')
+            else:
+                if runes_data[coin_id]['ath'] != 0:
+                    ath_change_percentage = ((current_price - runes_data[coin_id]['ath']) / runes_data[coin_id]['ath']) * 100
+                else:
+                    ath_change_percentage = None  # or some other value that makes sense in your context
+                if current_price > runes_data[coin_id]['ath']:
+                    ath = current_price
+                    ath_date = now.strftime('%Y-%m-%d')
+
         runes_data[coin_id].update({
             'name': name,
             'symbol': symbol,
             'number' : number,
             'current_price': current_price,
             'market_cap': market_cap_in_usd,
-            'ath': None,
-            'ath_date': None,
+            'ath': ath,
+            'ath_date': ath_date,
             'market_cap_rank': None,
             'change_1y': None,
             'change_24h': change_24h,
             'change_30d': None,
             'change_7d': None,
-            'ath_change_percentage': None,
+            'ath_change_percentage': ath_change_percentage,
             'volume_24h': volume_24h,
         })
 
@@ -706,7 +750,10 @@ def save_alerts(alert, user_id, server_id):
 async def get_ids(ctx, coin):
     server_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
-    coin_id = await check_coin(coin)
+    if is_rune(coin):
+        coin_id = coin
+    else:
+        coin_id = await check_coin(coin)
     return server_id, user_id, coin_id
 
 
@@ -772,8 +819,8 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         return
     # Get the current price of the coin to determine direction
     if is_rune(coin):
-        current_price = runes_data[user_id][coin_id]['current_price']
-        coin_name = runes_data[user_id][coin_id]['name']  # Use the coin's name
+        current_price = runes_data[coin_id]['current_price']
+        coin_name = runes_data[coin_id]['name']  # Use the coin's name
     else:  
         current_price = coin_data[coin_id]['current_price']
         coin_name = coin_data[coin_id]['name']
@@ -946,10 +993,10 @@ def get_all_coins_and_runes():
     for server in alerts_data.values():
         for user in server.values():
             for alert in user:
-                if is_rune(alert):  # Assuming is_rune is a function that checks if a coin is a rune
-                    runes_list.append(alert)
+                if is_rune(alert['coin']):  # Assuming is_rune is a function that checks if a coin is a rune
+                    runes_list.append(alert['coin'])
                 else:
-                    coins_list.append(alert)
+                    coins_list.append(alert['coin'])
 
     # Convert lists to sets to remove duplicates, then convert back to lists
     coins_list = list(set(coins_list))
@@ -959,8 +1006,7 @@ def get_all_coins_and_runes():
 
 
 
-
-async def save_historical_data():
+def save_historical_data():
     global coin_data
     global runes_data
     # Get the current date and time
@@ -972,7 +1018,7 @@ async def save_historical_data():
         date_str = now.strftime('%Y-%m-%d')
 
         # Create the file name
-        data_file = 'historical/data_{date_str}.json'
+        data_file = f'historical/data_{date_str}.json'
 
         # Check if the file already exists
         if not os.path.exists(data_file):
@@ -1003,6 +1049,7 @@ async def update_activity():
 
     await parse_rune_data(runes_list)
     price_btc = format_number(price_btc)
+    save_historical_data()
     if not gecko:
         if price_btc == .999:
             return

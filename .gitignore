@@ -2,3 +2,4 @@
 myenv/
 *.json
 !coins.json
+!/historical/data_2024-04-26.json
