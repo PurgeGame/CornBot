@@ -718,8 +718,20 @@ async def manage_coins_command(ctx, coins: str, user_id: str, action: str):
         await ctx.edit(content=message)
 
 @bot.slash_command(name="add", description="Add coins to your favorites or a list by name or exact ID")
-async def add(ctx, coins: str, exact_id: bool = False):
+async def add(ctx, coins: str, get_quant:bool = False, exact_id: bool = False):
     await ctx.defer(ephemeral=True)
+    user_id = str(ctx.author.id)
+    if get_quant:
+        user_data = get_user_data(user_id)
+        if user_data is None:
+            await ctx.edit(content="add your address using /runes first, coin not added")
+            return
+        else:
+            if 'address' in user_data:
+                address = user_data['address']
+            else:
+                await ctx.edit(content="add your address using /runes first, coin not added")
+                return
     global coin_data
     global runes_data
     user_id = str(ctx.author.id)
@@ -737,6 +749,9 @@ async def add(ctx, coins: str, exact_id: bool = False):
                     continue
                 else:
                     add_rune_data(user_id, rune_data)
+                    if get_quant:
+                        rune_data = await get_my_runes(address,coin)
+                        add_rune_data(user_id, rune_data)
             valid_coins.remove(save)
             valid_coins.append(rune_name)
               

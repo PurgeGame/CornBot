@@ -67,8 +67,9 @@ def format_number_with_symbol(num, symbol,integer=False,bitcoin = False):
         return f'{formatted_number} {symbol}'
         
 def is_rune(coin_id):
-    if is_all_caps(coin_id) or "•" in coin_id:
-        return True
+    if isinstance(coin_id, str):
+        if is_all_caps(coin_id) or "•" in coin_id:
+            return True
     
 def sanitize_rune(rune):
     return rune.replace('•', '')
