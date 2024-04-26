@@ -673,6 +673,8 @@ async def manage_coins(ctx, user_id, coins, action):
             message += f"Added runes to your favorites: {', '.join(added_runes)}\n"
         if removed_runes:
             message += f"Removed runes from your favorites: {', '.join(removed_runes)}"
+    else:
+        message = "No changes were made to your favorites."
     return message
 
 async def manage_coins_command(ctx, coins: str, user_id: str, action: str):
