@@ -1073,7 +1073,7 @@ def save_historical_data():
     # Get the current date and time
     now = datetime.now()
     # Check if it's around midnight
-    if now.hour == 17 and now.minute <15:
+    if now.hour == 0 and now.minute <5:
         # Format the current date as a string
         date_str = now.strftime('%Y-%m-%d')
 
