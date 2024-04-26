@@ -13,6 +13,12 @@ def get_coins(user_id, favorites):
             coins.append(coin)
     return coins
 
+def get_all_runes(favorites):
+    all_runes = []
+    for user_data in favorites.values():
+        all_runes += list(user_data['runes'].keys())
+    return all_runes
+
 def get_leverage():
     rand = random.random()
     if rand < .5:

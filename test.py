@@ -363,17 +363,28 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
 @bot.slash_command(name="ofa", description="Gives Official Financial Advice")
 async def ofa(ctx):
     await ctx.defer()
+    global coin_data
+    global runes_data
     user_id = str(ctx.author.id)
-    favorites = load_favorites("coins")
-    coins = get_coins(user_id, favorites)
-    coin = random.choice(coins)
-    coin_data = await fetch_coin_data([coin])  # renamed from prices to coin_data
-    price = coin_data[coin]['current_price']
-    name = coin_data[coin]['name']
     leverage = get_leverage()
     action = get_action(leverage)
-    emoji = get_emoji(action,coin)
-    buy_time, buy_price = get_buy_time_and_price(coin_data, coin, price)  # renamed from prices to coin_data
+    
+    if random.random() < 0.5:
+        favorite_coins = load_favorites("coins")
+        coins = get_coins(user_id, favorite_coins)
+        coin = random.choice(coins)
+        price = coin_data[coin]['current_price']
+        name = coin_data[coin]['name']
+        buy_time, buy_price = get_buy_time_and_price(coin_data, coin, price)  # renamed from prices to coin_data
+        emoji = get_emoji(action,coin)
+    else:
+        favorite_runes = load_favorites("runes")
+        runes = get_all_runes(favorite_runes)
+        rune = random.choice(runes)
+        price = runes_data[rune]['current_price']
+        name = runes_data[rune]['name']
+        buy_time, buy_price = get_buy_time_and_price(runes_data, rune, price)
+        emoji = get_emoji(action,rune)
 
     await send_advice(ctx, action, name, buy_time, buy_price, leverage, emoji)
 
