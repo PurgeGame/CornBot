@@ -12,9 +12,34 @@ from typing import Optional
 import asyncio
 import time
 from datetime import datetime, timezone, timedelta
-
-
+from utils import *
+from ofa import *
+import glob
 load_dotenv()
+coin_data = {}
+runes_data = {}
+
+def load_most_recent_json():
+    global coin_data
+    global runes_data
+    # Get a list of all JSON files in the 'historical' folder
+    files = glob.glob('historical/*.json')
+
+    # Sort the files by modification time
+    files.sort(key=os.path.getmtime)
+
+    # Get the most recent file
+    most_recent_file = files[-1]
+
+    # Load the data from the most recent file
+    with open(most_recent_file, 'r') as f:
+        data = json.load(f)
+    coin_data = data.get('coin_data', {})
+    runes_data = data.get('runes_data', {})
+    return data
+
+load_most_recent_json()
+
 class CustomContext(commands.Context):
     async def send(self, content=None, **kwargs):
         server_id = str(self.guild.id)
@@ -51,6 +76,7 @@ bot = commands.Bot(command_prefix='!', intents=intents, context_class=CustomCont
 
 token = os.environ.get("DISCORD_BOT_SECRET")
 GECKO_API = os.environ.get("GECKO_API")
+MAGIC_EDEN_API = os.environ.get("MAGIC_EDEN_API")
 global change_btc
 change_btc = 0
 
@@ -78,6 +104,17 @@ async def fetch_data_from_api(url):
                         await asyncio.sleep(2)  # Wait for 2 seconds before the next try
     return {}
 
+def find_min_market_cap_rank(matching_ids):
+    global coin_data  # Use the global variable
+
+    # Filter coin_data to only include coins with an ID in matching_ids
+    filtered_coin_data = {coin_id: data for coin_id, data in coin_data.items() if coin_id in matching_ids}
+
+    # Find the coin with the minimum market cap rank
+    min_market_cap_rank_coin = min(filtered_coin_data, key=lambda coin_id: filtered_coin_data[coin_id]['market_cap_rank'] if filtered_coin_data[coin_id]['market_cap_rank'] is not None else float('inf'))
+
+    return min_market_cap_rank_coin
+
 async def check_coin(coin):
     coin = coin.lower()
     matching_ids = []
@@ -91,66 +128,46 @@ async def check_coin(coin):
             return matching_ids[0]
         else:
             data = await fetch_coin_data(matching_ids)
-            return min(data, key=lambda coin_id: data[coin_id]['market_cap_rank'] if data[coin_id]['market_cap_rank'] is not None else float('inf'))
+            return find_min_market_cap_rank(matching_ids)
     else: 
         return False
-
-@bot.slash_command(name="price", description="Show the current price for a coin")
-async def price(ctx, coins: str, include_historical: bool = False):
     
+    
+@bot.slash_command(name="price", description="Show the current price for a coin or rune")
+async def price(ctx, items: str, include_historical: bool = False):
     await ctx.defer()
-    # Split the coins parameter by commas to get a list of coins
-    coins = [coin.strip() for coin in coins.split(',')]
+    # Split the items parameter by commas to get a list of items
+    items = [item.strip() for item in items.split(',')]
     coins_data = {}
-    for coin in coins:
-        coin_id = await check_coin(coin)
-        if not coin_id:
-            continue
-        data = await fetch_coin_data([coin_id])
-        if data and coin_id in data:
-            coins_data[coin_id] = data[coin_id]       
-    await display_coins(ctx, coins_data, include_historical = include_historical)
-
-def is_number(n):
-    try:
-        float(n)
-        return True
-    except ValueError:
-        return False
-
-def round_sig(num, sig_figs = 2):
-    if num != 0:
-        return round(num, -int(math.floor(math.log10(abs(num))) - (sig_figs - 1)))
-    else:
-        return 0  # Can't take the log of 0
-
-def format_number(num):
-    if num is None or not is_number(num):
-        return 0
-    else:
-        num = float(num)
-        if num >= 1e10:
-            return f'{num/1e9:,.0f} B'
-        elif num >= 1e7:
-            return f'{num/1e6:,.0f} M'
-        elif num >= 1e3:
-            return f'{int(num):,}'
-        elif num == 0:
-            return 0
-        elif num < 0.01:
-            return f'{num:.2e}'
-        elif num > 1:
-            return round(num, 2)
-        elif num > .01:
-            return f'{num:.2f}'
+    runes_data = {}
+    for item in items:
+        if is_rune(item):
+            rune_id = sanitize_rune(item)
+            if rune_id:
+                data = await fetch_rune_data([rune_id])
+                if data and rune_id in data:
+                    runes_data[rune_id] = data[rune_id]
         else:
-            return round_sig(num, 2)
-        
-async def create_table(coins_data, display_id, include_historical=False):
+            coin_id = await check_coin(item)
+            if coin_id:
+                data = await fetch_coin_data([coin_id])
+                if data and coin_id in data:
+                    coins_data[coin_id] = data[coin_id]
+
+    if runes_data == {} and coins_data == {}:
+        await ctx.edit(content="Item not found.")
+        return
+
+    if runes_data:
+        await display_runes(ctx, runes_data, include_historical = include_historical)
+    if coins_data:
+        await display_coins(ctx, coins_data, include_historical = include_historical)
+
+async def create_table_coins(coins_data, display_id, include_historical=False):
     if include_historical:
-        field_names = ['ID' if display_id else 'Name', 'Price', 'M Cap', 'Δ 24h', 'Δ 7d', 'Δ 30d', 'Δ 1y', 'Δ ATH']
+        field_names = ['ID' if display_id else 'Name', 'Price', 'M Cap', 'Δ 24h', 'Δ 7d', 'Δ 30d', 'Δ 1y', 'ΔATH']
     else:
-        field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'Δ ATH']
+        field_names = ['ID' if display_id else 'Name', 'Price', 'Δ 24h', 'M Cap', 'ΔATH']
 
     table = PrettyTable()
     table.field_names = field_names
@@ -158,12 +175,11 @@ async def create_table(coins_data, display_id, include_historical=False):
     table.align['ID' if display_id else 'Name'] = 'l'  # left-align IDs
 
     for coin_id, coin_data in coins_data.items():  # renamed from prices to coin_data
-        name = truncate_name(coin_data['name'])
+        name = truncate_name(coin_data['name'],20)
         market_cap = format_number(coin_data['market_cap']) if format_number(coin_data['market_cap']) != 0 else 'N/A'
         price = format_number(coin_data['current_price']) if coin_data['current_price'] else 'N/A'
-        change_24h = format_change(coin_data['change_24h'])
-        ath_change = format_change(coin_data['ath_change_percentage'])
-
+        change_24h = format_change(coin_data['change_24h']) if coin_data['change_24h'] else 'N/A'
+        ath_change = format_change(coin_data['ath_change_percentage']) if coin_data['ath_change_percentage'] else 'N/A'
         if include_historical:
             change_7d = format_change(coin_data.get('change_7d'))
             change_30d = format_change(coin_data.get('change_30d'))
@@ -173,64 +189,183 @@ async def create_table(coins_data, display_id, include_historical=False):
             row_data = [name if not display_id else coin_id, price, change_24h, market_cap, ath_change]
 
         table.add_row(row_data)
-
     return table
-def truncate_name(name, max_length=15):
-    return name[:max_length-2] + '..' if len(name) > max_length else name
 
-def format_change(change):
-    if change is None:
-        return 'N/A'
-    return f"{'+-'[change < 0]}{abs(change):.1f}%"
+async def create_table_runes(runes,user_id):
+    global coin_data
+    field_names = [ 'Name', 'Price', 'Δ 24h', 'M Cap', '24h VOL', 'Owned', 'Value']
+    table = PrettyTable()
+    table.field_names = field_names
+    table.align = 'r'  # right-align data
+    table.align['Name'] = 'l'  # left-align IDs
+    table.align['Sym'] = 'l'  # left-align IDs
 
-async def split_table(table, limit=2000):
-    messages = []
-    current_message = ""
-    for line in str(table).split('\n'):
-        if len(current_message) + len(line) + len('```\n\n```') > limit:  # account for markdown code block characters
-            messages.append(f'```\n{current_message}\n```')
-            current_message = line
-        else:
-            current_message += '\n' + line
-    messages.append(f'```\n{current_message}\n```')
-    return messages
+    total_value = 0
+    rows = []  # Store the rows here first
+    for coin_id, rune_data in runes.items():
+        owned_runes = check_coin_quantity(user_id, coin_id)
+        quantity_owned = float(owned_runes['balance']) if owned_runes is not None and 'balance' in owned_runes else 0
+        unformatted_price = rune_data['current_price']
 
-async def display_coins(ctx, coins_data, display_id=False, list_name=None, include_historical=False):
+        symbol = rune_data['symbol'] if rune_data['symbol'] else ''
+        name = truncate_name(rune_data['name'],20)
+        market_cap = format_number(rune_data['market_cap']) if format_number(rune_data['market_cap']) != 0 else 'N/A'
+        price = format_number(rune_data['current_price']) if rune_data['current_price'] else 'N/A'
+        change_24h = format_change(rune_data['change_24h']) if rune_data['change_24h'] else 'N/A'
+        sat_price = float(coin_data['bitcoin']['current_price']) / 100000000
+        volume_24h = format_number(int(rune_data['volume_24h']) * sat_price) if rune_data['volume_24h'] else 'N/A'
+
+        
+        value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True) if quantity_owned is not None and price != 'N/A' else 'N/A'
+  
+       
+        if volume_24h == 'N/A' or rune_data['volume_24h'] < 2000000:
+            volume_24h = 0
+            price = 'N/A'
+            market_cap = 'N/A'
+            change_24h = 'N/A'
+            value = 'N/A'
+        if value != 'N/A':
+            total_value += quantity_owned * unformatted_price * sat_price
+        quantity_owned = format_number_with_symbol(quantity_owned,symbol) if quantity_owned is not None else '0'
+        row_data = [name, price, change_24h, market_cap, volume_24h, quantity_owned, value]
+        rows.append(row_data)  # Add the row data to the list
+
+    # Sort the rows by value (assuming value is a float)
+    rows.sort(key=lambda row: convert_to_float(row[-1].replace(',', '').replace('$', '')) if row[-1] != 'N/A' else 0, reverse=True)
+    # Add the sorted rows to the table
+    for row in rows:
+        table.add_row(row)
+    ath = False
+    with open('favorite_runes.json', 'r+') as f:
+        favorite_runes = json.load(f)
+        if 'total_value' not in favorite_runes[user_id] or total_value > favorite_runes[user_id]['total_value']:
+            favorite_runes[user_id]['total_value'] = total_value
+            f.seek(0)  # Move the cursor to the beginning of the file
+            json.dump(favorite_runes, f, indent=4)
+            f.truncate()  # Remove any remaining content
+            ath = True
+
+    return table,total_value,ath
+
+async def display_coins(ctx, coins_data, display_id=False, include_historical=False):
     filtered_coins = {coin_id: coin_data for coin_id, coin_data in coins_data.items()}
 
     if not filtered_coins:
         await ctx.edit(content='No coins with a market cap of $1 million or more were found.')
         return
 
-    table = await create_table(filtered_coins, display_id, include_historical)
+    table = await create_table_coins(filtered_coins, display_id, include_historical)
     messages = await split_table(table)
 
-    if list_name:
-        messages[0] = f"Displaying coins from the list '{list_name}':\n" + messages[0]
 
     await ctx.edit(content=messages[0])
     for message in messages[1:]:
         await ctx.send(content=message)
+
+async def display_runes(ctx, runes_data):
+    table, total_value,ath = await create_table_runes(runes_data, str(ctx.author.id))
+    messages = await split_table(table)
+    total_value = format_number_with_symbol(total_value,'USD',True)
+    await ctx.edit(content=messages[0])
+    for message in messages[1:]:
+        await ctx.send(content=message)
+
+    # Send a message about the total value
+    if ath:
+        await ctx.send(content=f'Total portfolio value: {total_value}, a new ATH!')
+    else:
+        await ctx.send(content=f'Total potrfolio value: {total_value}')
             
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
-async def coins(ctx, list_name: Optional[str] = None, include_historical: Optional[bool] = False):
+async def coins(ctx, include_historical: Optional[bool] = False):
     await ctx.defer()
     user_id = str(ctx.author.id)
     favorites = load_favorites()
-    if list_name:
-        if list_name in favorites:
-            coins = favorites[list_name]
-        else:
-            await ctx.edit(content=f"The list '{list_name}' does not exist.")
-            return
-    elif user_id in favorites and favorites[user_id]:
-        # Use the user's favorite coins if no list was provided
+    if user_id in favorites and favorites[user_id]:
         coins = favorites[user_id]
     else:
         await ctx.edit(content="You don't have any favorite coins saved.")
         return
-    coin_data = await fetch_coin_data(coins)  # renamed from prices to coin_data
-    await display_coins(ctx, coin_data, list_name=list_name, include_historical=include_historical)
+    filtered_coins_data = {coin_id: coin_data[coin_id] for coin_id in coins if coin_id in coin_data}
+    await display_coins(ctx, filtered_coins_data, include_historical=include_historical)
+
+async def get_my_runes(address,rune):
+    url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/wallet/balances/{address}/{rune}"
+    headers = {"Authorization": f"Bearer {MAGIC_EDEN_API}"}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200 and response.content_type == 'application/json':
+                data = await response.json()
+                return data
+            else:
+                return {}
+
+@bot.slash_command(name="runes", description="Show your runes")
+async def runes(ctx, update_quantity: Optional[bool] = False, address: Optional[str] = None,):
+    global runes_data
+    await ctx.defer()
+    user_id = str(ctx.author.id)
+    if address is None:
+        if not os.path.exists('favorite_runes.json'):
+            return None
+        else:
+            user_data = get_user_data(user_id)
+            if user_data is None:
+                await ctx.edit(content="User not found.")
+                return None
+            address = user_data['address']
+    else:
+        add_or_update_user_address(user_id, address)
+    runes = load_user_runes(user_id)
+    if update_quantity:
+        if runes is None:
+            await ctx.edit(content="You don't have any favorite runes saved.")
+            return
+        for rune in runes:
+            rune_data = await get_my_runes(address,rune)
+            if rune_data == {}:
+                await ctx.edit(content=f"{rune} not found.")
+                continue
+            add_rune_data(user_id, rune_data)
+    runes = load_user_runes(user_id)
+    if runes is None:
+        await ctx.edit(content="You don't have any favorite runes saved.")
+        return
+    else:
+         await fetch_coin_data(runes)
+    filtered_runes_data = {rune: runes_data[rune] for rune in runes if rune in runes_data}
+    await display_runes(ctx, filtered_runes_data)
+
+def add_rune_data(user_id, rune_data):
+    # Load the existing data from the JSON file
+    if not os.path.exists('favorite_runes.json'):
+        return False
+
+    with open('favorite_runes.json', 'r') as f:
+        user_data = json.load(f)
+
+    # Check if the user exists
+    if user_id not in user_data:
+        return False
+
+    # Initialize the 'runes' key if it doesn't exist
+    if 'runes' not in user_data[user_id]:
+        user_data[user_id]['runes'] = {}
+
+    # Check if 'formattedBalance' is in rune_data
+    if 'formattedBalance' not in rune_data:
+        return False
+
+    # Add the rune data to the user's data
+    user_data[user_id]['runes'][rune_data['ticker']] = {
+        'balance': rune_data['formattedBalance']
+    }
+
+    # Write the updated data back to the JSON file
+    with open('favorite_runes.json', 'w') as f:
+        json.dump(user_data, f, indent=4)
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str, num: Optional[int] = 10):
@@ -246,115 +381,40 @@ async def search_coins(ctx, query: str, num: Optional[int] = 10):
     coin_data = await fetch_coin_data(matching_ids)
     await display_coins(ctx, coin_data, display_id=True)
 
-def get_emoji(action,coin):
-    neutral_emojis = ['<:glasses:958216013529366528> ', '<:scam:1059964673530806283> ', '<:shrug:1203958281094299678>','<a:nfa:1042264955879166003> ' ] # Replace with your actual neutral emojis
-    buy_emojis = ['<a:pepelaugh:922704567332917258> ', '<a:buybuybuy:920335813294841966> ', '<:dogeGIGA:839205306042286151> ','<:smoke:929557485210181673> '] + neutral_emojis
-    sell_emojis = ['<:harold:826533474886221904> ', '<:bonk:1056641594255736832>','<:cramer:1062188133711626301> ','<:bobo:1016420363829256212> ','<a:sadpepedance:935358551151505469>' ] + neutral_emojis
-    bitcoin_emojis = [ '🌽', '<:SAYLOR:981349800110850048>','<:fink:1166095456774926456>']
-    if action == 'BUY'  or action == 'LONG':
-        # If the action is to buy, select a positive emoji
-        if coin == 'bitcoin':
-            return random.choice(bitcoin_emojis)
-        else:
-            return random.choice(buy_emojis)
-    elif action == 'SHORT':
-        # If the action is to sell, select a negative emoji
-        return random.choice(sell_emojis)
 
 @bot.slash_command(name="ofa", description="Gives Official Financial Advice")
 async def ofa(ctx):
     await ctx.defer()
+    global coin_data
+    global runes_data
     user_id = str(ctx.author.id)
-    favorites = load_favorites()
-    coins = get_coins(user_id, favorites)
-    coin = random.choice(coins)
-    coin_data = await fetch_coin_data([coin])  # renamed from prices to coin_data
-    price = coin_data[coin]['current_price']
-    name = coin_data[coin]['name']
     leverage = get_leverage()
     action = get_action(leverage)
-    emoji = get_emoji(action,coin)
-    buy_time, buy_price = get_buy_time_and_price(coin_data, coin, price)  # renamed from prices to coin_data
+    
+    if random.random() < 0.5:
+        favorite_coins = load_favorites("coins")
+        coins = get_coins(user_id, favorite_coins)
+        coin = random.choice(coins)
+        price = coin_data[coin]['current_price']
+        name = coin_data[coin]['name']
+        buy_time, buy_price = get_buy_time_and_price(coin_data, coin, price)  # renamed from prices to coin_data
+        emoji = get_emoji(action,coin)
+    else:
+        favorite_runes = load_favorites("runes")
+        runes = get_all_runes(favorite_runes)
+        rune = random.choice(runes)
+        price = runes_data[rune]['current_price']
+        name = runes_data[rune]['name']
+        buy_time, buy_price = get_buy_time_and_price(runes_data, rune, price)
+        emoji = get_emoji(action,rune)
 
     await send_advice(ctx, action, name, buy_time, buy_price, leverage, emoji)
 
-def get_coins(user_id, favorites):
-    coins = []
-    if random.random() < .5:
-        for user_favorites in favorites.values():
-            coins += user_favorites
-    elif user_id in favorites and favorites[user_id]:
-        coins = favorites[user_id]
-    for coin in ['bitcoin', 'ethereum', 'solana']:
-        if coin not in coins:
-            coins.append(coin)
-    return coins
-
-def get_leverage():
-    rand = random.random()
-    if rand < .5:
-        return 0
-    elif rand > .995:
-        return None
-    else:
-        return random.choice([6.9, 20, 42.069, 69, 100, 420])
-
-    
-def get_action(leverage):
-    return 'BUY' if random.random() < .7 and leverage == 0 else 'LONG' if random.random() < .7 and leverage > 0 else 'SHORT'
-
-def calculate_change_date(change_key):
-    if change_key == 'change_24h':
-        return 'yesterday'
-    elif change_key == 'change_7d':
-        return 'a week ago'
-    elif change_key == 'change_30d':
-        return 'a month ago'
-    elif change_key == 'change_1y':
-        return 'a year ago'
-    else:
-        return 'now'
-
-def get_valid_change(coin_data, coin):
-    while True:
-        change_key = random.choice(['change_24h', 'change_7d', 'change_30d', 'change_1y'])
-        change = coin_data[coin].get(change_key)
-        if change is not None:
-            return change_key, change / 100  # Return the key and the change value as a decimal
-
-def get_buy_time_and_price(coin_data, coin, price):
-    rand = random.random()
-    if rand < .1:
-        change_key, change = get_valid_change(coin_data, coin)
-        change_date = calculate_change_date(change_key)
-        if change < 0:  # Price decreased
-            approx_price = price / (1 - change)
-        else:  # Price increased
-            approx_price = price / (1 + change)
-        return change_date, approx_price
-    elif rand < 0.6:
-        return 'now', price
-    elif rand < 0.75:
-        return 'tomorrow', price * (1 + random.uniform(-0.2, 0.2))
-    elif rand < 0.9:
-        return 'next week', price * (1 + random.uniform(-0.2, 0.2))
-    else:
-        date = datetime.strptime(coin_data[coin]["ath_date"], '%Y-%m-%dT%H:%M:%S.%fZ')
-        date = date.strftime('%B %d, %Y')  # Format the date as 'Month Day, Year'
-        return f'on {date}', coin_data[coin]['ath']
-
-async def send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji):
-    if leverage is None:
-        await ctx.edit(content=f'Official Financial Advice: Play Purge Game')
-    elif leverage > 0:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}, with {leverage}x leverage. {emoji}')
-    else:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}. {emoji}')
-
 def parse_data(data):
-    data = {coin['id']: coin for coin in data}
+    
+    global coin_data  # Use the global variable
 
-    parsed_data = {}
+    data = {coin['id']: coin for coin in data}
 
     for coin_id, coin in data.items():
         name = coin['name']  # Extract the name
@@ -369,10 +429,12 @@ def parse_data(data):
         change_7d = coin.get('price_change_percentage_7d_in_currency')
         ath_change_percentage = coin.get('ath_change_percentage')
 
-        parsed_data[coin_id] = {
+        # Update the coin data in parsed_data or add it if it doesn't exist
+        coin_data[coin_id] = {
             'name': name,  # Add the name to the parsed data
             'current_price': current_price,
             'market_cap': market_cap,
+            'number' : None,
             'ath': ath,
             'ath_date': ath_date,
             'market_cap_rank': market_cap_rank,
@@ -381,19 +443,135 @@ def parse_data(data):
             'change_30d': change_30d,
             'change_7d': change_7d,
             'ath_change_percentage': ath_change_percentage,
-        }
+            'volume_24h': None,
+            }
 
-    return parsed_data
+    return coin_data
+
+from datetime import datetime
+
+async def parse_rune_data(rune_list):
+    global runes_data  # Use the global variable
+    global coin_data
+
+    for rune in rune_list:
+        new_data = await fetch_rune_data(rune)  # Assuming fetch_rune_data is a function that fetches data for a rune
+        coin_id = new_data.get('rune', None)
+        symbol = new_data.get('symbol', None)
+        name = new_data.get('name', None)
+        number = new_data.get('runeNumber', None)
+        current_price = float(new_data.get('floorUnitPrice', {}).get('formatted', '0'))  # Convert from BTC to sats
+        market_cap_in_btc = new_data.get('marketCap', 0)
+        volume_24h = new_data.get('volume', {}).get('24h', 0)
+
+        # Convert the market cap from Bitcoin to dollars
+        btc_price_in_usd = coin_data['bitcoin']['current_price']
+        market_cap_in_usd = market_cap_in_btc * btc_price_in_usd
+
+        # Get the current time
+        now = datetime.now()
+
+        # If it's :00 or :01, update the price list
+        if now.minute in [0, 1]:
+            # If the coin data doesn't exist, initialize it with an empty list
+            if coin_id not in runes_data or 'price_list' not in runes_data[coin_id]:
+                runes_data[coin_id] = {'price_list': []}
+
+            # If the price list has more than 24 items, remove the oldest one
+            if 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) >= 24:
+                runes_data[coin_id]['price_list'].pop(0)
+
+            # Add the current price to the price list
+            if 'price_list' not in runes_data[coin_id]:
+                runes_data[coin_id]['price_list'] = []
+
+            runes_data[coin_id]['price_list'].append(current_price)
+
+        # Calculate the percentage change in the current price versus the oldest data in the price list
+        # Only when the price list has a full 24 hours of data
+        if coin_id in runes_data and 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) == 24:
+            oldest_price = runes_data[coin_id]['price_list'][0]
+            change_24h = ((current_price - oldest_price) / oldest_price) * 100
+        else:
+            change_24h = None
+        ath_change_percentage = None
+        if coin_id in runes_data:
+            ath = runes_data[coin_id].get('ath', None)
+            ath_date = runes_data[coin_id].get('ath_date', None)
+        else:
+            ath_date = None
+            ath = None
+        # Update the rune data in runes_data or add it if it doesn't exist
+        if coin_id not in runes_data:
+            runes_data[coin_id] = {}
+            ath = current_price
+            ath_date = now.strftime('%Y-%m-%d')
+        else:
+            if runes_data[coin_id].get('ath') is None:
+                ath = current_price
+                ath_date = now.strftime('%Y-%m-%d')
+            else:
+                if runes_data[coin_id]['ath'] != 0:
+                    ath_change_percentage = ((current_price - runes_data[coin_id]['ath']) / runes_data[coin_id]['ath']) * 100
+                else:
+                    ath_change_percentage = None  # or some other value that makes sense in your context
+                if current_price > runes_data[coin_id]['ath']:
+                    ath = current_price
+                    ath_date = now.strftime('%Y-%m-%d')
+
+        runes_data[coin_id].update({
+            'name': name,
+            'symbol': symbol,
+            'number' : number,
+            'current_price': current_price,
+            'market_cap': market_cap_in_usd,
+            'ath': ath,
+            'ath_date': ath_date,
+            'market_cap_rank': None,
+            'change_1y': None,
+            'change_24h': change_24h,
+            'change_30d': None,
+            'change_7d': None,
+            'ath_change_percentage': ath_change_percentage,
+            'volume_24h': volume_24h,
+        })
+
+    return runes_data
 
 async def fetch_coin_data(coin_ids):
-    coin_ids_str = ', '.join(coin_ids)
-    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coin_ids_str}&price_change_percentage=7d%2C30d%2C1y"
-    if len(coin_ids) > 100:
-        url += f"&per_page={len(coin_ids) + 1}"
-    data = await fetch_data_from_api(url)
-    parsed_data = parse_data(data)
-    return parsed_data
+    global coin_data
+    success = 0
+    coin_id_str = ','.join(coin_ids)
+    url = f"https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids={coin_id_str}&price_change_percentage=7d%2C30d%2C1y"
+    raw_data_list = await fetch_data_from_api(url)
+    if raw_data_list:
+        for item in raw_data_list:
+            if item.get('id') == 'bitcoin':
+                success = True
 
+        parse_data(raw_data_list)  # Update the coin_data dictionary with the parsed data
+    return success
+
+
+
+async def fetch_rune_data(rune_name):
+    url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/market/{rune_name}/info"
+    headers = {"Authorization": f"Bearer {MAGIC_EDEN_API}"}
+
+    async with aiohttp.ClientSession() as session:
+
+        async with session.get(url, headers=headers) as response:
+
+            if response.status == 200 and response.content_type == 'application/json':
+                data = await response.json()
+                
+                if isinstance(data, dict) and 'rune' in data:
+                    return data
+                else:
+                    return {}
+            else:
+                return {}
+            
 async def fetch_bitcoin_price_fallback():
     async with aiohttp.ClientSession() as session:
         try:
@@ -407,81 +585,120 @@ async def fetch_bitcoin_price_fallback():
                     return {'current_price': int(float(data_btc['data']['amount']))}
             except:
                 return {'current_price': .999}
-
-async def get_bitcoin_price():
-    global change_btc
-    existing_alerts = load_json_file('alerts.json')
-    coins = list(set([alert['coin'] for server in existing_alerts.values() for user in server.values() for alert in user if isinstance(alert, dict) and 'coin' in alert]))
-    coins.append('bitcoin')
-    coins = list(set(coins))
-    if len(coins) > 250:
-        coins = coins[:250]
-
+            
+async def get_coin_data(coins):
+    global coin_data
     coingecko_success = True
     try:
-        data = await fetch_coin_data(coins)
+        coingecko_success = await fetch_coin_data(coins)
+
     except:
         data = {}
         coingecko_success = False
-    if 'bitcoin' not in data:
-        data['bitcoin'] = await fetch_bitcoin_price_fallback()
-
-    if coingecko_success and 'change_24h' in data['bitcoin']:
-        await check_alerts(data)
-        change_btc = data['bitcoin']['change_24h']
-
-    return (data['bitcoin']['current_price'], change_btc, coingecko_success)
-
-
-def load_favorites():
-    if os.path.exists('favorites.json'):
-        with open('favorites.json', 'r') as f:
-            return json.load(f)
+    if not coingecko_success:
+        btc_price = await fetch_bitcoin_price_fallback()
+        if btc_price:
+            coin_data['bitcoin']['current_price'] = btc_price
+    if coingecko_success and 'change_24h' in coin_data['bitcoin']:
+        change_btc = coin_data['bitcoin']['change_24h']
     else:
-        return {}
+        change_btc = 0
+        print('Error fetching BTC data') 
 
-async def save_favorites(favorites):
-    with open('favorites.json', 'w') as f:
-        json.dump(favorites, f)
+    return (coin_data['bitcoin']['current_price'], change_btc, coingecko_success)
 
-
-async def manage_coins(ctx, user_id, coins, action, list_name=None):
-    favorites = load_favorites()
-    key = f'{list_name}_{ctx.guild.id}' if list_name else user_id  # use the server ID and list name as the key if a list name is provided
-    user_favorites = favorites.get(key, [])
+async def validate_rune(rune):
+    if rune not in runes_data:
+        if await fetch_rune_data(rune) == {}:
+            return False
+        else:
+            return True
+    else:
+        return True
+    
+async def manage_coins(ctx, user_id, coins, action):
+    favorites_coins = load_favorites('coins')
+    favorites_runes = load_favorites('runes')
+    key = user_id  # use the server and list name as the key if a list name is provided
+    user_favorites_coins = favorites_coins.get(key, [])
+    user_runes_dict = favorites_runes.get(key, {'runes': {}})
+    user_favorites_runes = user_runes_dict['runes']
+    added_coins = []
+    added_runes = []
+    removed_coins = []
+    removed_runes = []
     if action == 'add':
-        added_coins = [coin for coin in coins if coin not in user_favorites]
-        user_favorites.extend(added_coins)
-        message = f"Added coins to your favorites: {', '.join(coin for coin in added_coins if coin is not None)}"
+        for coin in coins:
+            if is_rune(coin):
+                if coin not in user_favorites_runes:
+                    user_favorites_runes[coin] = {}  # Initialize the rune as a dictionary
+                    added_runes.append(coin)
+            else:
+                if coin not in user_favorites_coins:
+                    user_favorites_coins.append(coin)
+                    added_coins.append(coin)
     elif action == 'remove':
-        removed_coins = [coin for coin in coins if coin in user_favorites]
-        user_favorites = [coin for coin in user_favorites if coin not in removed_coins]
-        message = f"Removed coins from your favorites: {', '.join(removed_coins)}"
-    if user_favorites:  
-        favorites[key] = user_favorites
-    else:  
-        if key in favorites:  # make sure the key exists before deleting it
-            del favorites[key]  # remove the key-value pair from the dictionary
-    await save_favorites(favorites)
+        for coin in coins:
+            if is_rune(coin):
+                if coin in user_favorites_runes:
+                    del user_favorites_runes[coin]  # Delete the rune dictionary
+                    removed_runes.append(coin)
+            else:
+                if coin in user_favorites_coins:
+                    user_favorites_coins.remove(coin)
+                    removed_coins.append(coin)
+    message = ''
+    if added_coins or removed_coins:
+        favorites_coins[key] = user_favorites_coins if user_favorites_coins else favorites_coins.pop(key, None)
+        await save_favorites(favorites_coins, 'coins')
+        if added_coins:
+            message += f"Added coins to your favorites: {', '.join(added_coins)}\n"
+        if removed_coins:
+            message += f"Removed coins from your favorites: {', '.join(removed_coins)}\n"
+    if added_runes or removed_runes:
+        if user_favorites_runes:
+            favorites_runes[key] = user_runes_dict
+        else:
+            favorites_runes.pop(key, None)
+        await save_favorites(favorites_runes, 'runes')
+        if added_runes:
+            message += f"Added runes to your favorites: {', '.join(added_runes)}\n"
+        if removed_runes:
+            message += f"Removed runes from your favorites: {', '.join(removed_runes)}"
     return message
 
-async def manage_coins_command(ctx, coins: str, user_id: str, action: str, list_name=None):
+async def manage_coins_command(ctx, coins: str, user_id: str, action: str):
     coins = [coin.strip() for coin in coins.split(',')]
-    coins = [await check_coin(coin) for coin in coins]
-    message = await manage_coins(ctx, user_id, coins, action, list_name)
-    if list_name:
-        message = message.replace("Added coins to your favorites", "Added coins").replace("Removed coins from your favorites", "Removed coins")
-        message += f" to the list {list_name}" if action == 'add' else f" from the list {list_name}"
-    await ctx.edit(content=message)
-
-async def check_list_name(list_name):
-    return sum(c.isdigit() for c in list_name) <= 10
+    coins = [await check_coin(coin) if not is_rune(coin) else coin for coin in coins]
+    if coins:  # Check if coins list is not empty
+        message = await manage_coins(ctx, user_id, coins, action)
+        await ctx.edit(content=message)
 
 @bot.slash_command(name="add", description="Add coins to your favorites or a list by name or exact ID")
-async def add(ctx, coins: str, list_name: str = None, exact_id: bool = False):
+async def add(ctx, coins: str, exact_id: bool = False):
     await ctx.defer(ephemeral=True)
+    global coin_data
+    global runes_data
     user_id = str(ctx.author.id)
-
+    coins = coins.split(",") 
+    valid_coins = coins.copy()
+    for coin in coins:
+        if is_rune(coin):
+            save = coin
+            rune_name = sanitize_rune(coin)
+            if coin not in runes_data:
+                rune_data = await fetch_rune_data(rune_name)
+                if rune_data == {}:
+                    await ctx.edit(content=f"The coin {save} you provided is not valid.")
+                    valid_coins.remove(save)
+                    continue
+                else:
+                    add_rune_data(user_id, rune_data)
+            valid_coins.remove(save)
+            valid_coins.append(rune_name)
+              
+    coins = valid_coins
+    coins_str = ",".join(coins)  # Join the coins back into a string
     if exact_id:
         # Check if the coin_id exists in coins
         with open('coins.json', 'r', encoding='utf-8') as f:
@@ -493,24 +710,21 @@ async def add(ctx, coins: str, list_name: str = None, exact_id: bool = False):
         else:
             await ctx.edit(content="The coin you provided is not valid.")
     else:
-        if list_name:
-            if not await check_list_name(list_name):
-                await ctx.send("List name cannot contain more than 10 digits.")
-                return
-            await manage_coins_command(ctx, coins, list_name, 'add', list_name)
-        else:
-            await manage_coins_command(ctx, coins, user_id, 'add')
+        if coins_str == "":
+            return
+        await manage_coins_command(ctx, coins_str, user_id, 'add')  # Pass coins_str instead of coins
 
 @bot.slash_command(name="remove", description="Remove coins from your favorites or a list")
-async def remove(ctx, coins: str, list_name: str = None):
+async def remove(ctx, coins: str):
     await ctx.defer(ephemeral=True)
-    if list_name:
-        if not await check_list_name(list_name):
-            await ctx.edit(content="List name cannot contain more than 10 digits.")
-            return
-        await manage_coins_command(ctx, coins, list_name, 'remove', list_name)
-    else:
-        await manage_coins_command(ctx, coins, str(ctx.author.id), 'remove')
+    valid_coins = coins.split(',')  # split the string into a list
+    for coin in valid_coins:
+        if is_rune(coin):
+            save = coin
+            rune = sanitize_rune(coin)
+            valid_coins.remove(save)
+            valid_coins.append(rune)
+    await manage_coins_command(ctx, ','.join(valid_coins), str(ctx.author.id), 'remove')  # join the list back into a string
 
 def save_alerts(alert, user_id, server_id):
     # Load the existing alerts from the file
@@ -536,8 +750,12 @@ def save_alerts(alert, user_id, server_id):
 async def get_ids(ctx, coin):
     server_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
-    coin_id = await check_coin(coin)
+    if is_rune(coin):
+        coin_id = coin
+    else:
+        coin_id = await check_coin(coin)
     return server_id, user_id, coin_id
+
 
 async def get_alert_type_and_value(target):
     if target.lower() == 'ath':
@@ -586,7 +804,11 @@ async def send_confirmation_message(ctx, new_alert, coin_name):
 
 @bot.slash_command(name="alert", description="Set a price alert for a coin")
 async def alert(ctx, coin: str, target: str, cooldown: int = None):
+    global coin_data
+    global runes_data
     await ctx.defer(ephemeral=True)
+    if is_rune(coin):
+        coin = sanitize_rune(coin)
     server_id, user_id, coin_id = await get_ids(ctx, coin)
     if not coin_id:
         await ctx.edit(content="Invalid coin")
@@ -596,9 +818,12 @@ async def alert(ctx, coin: str, target: str, cooldown: int = None):
         await ctx.edit(content="Invalid target")
         return
     # Get the current price of the coin to determine direction
-    coin_data = await fetch_coin_data([coin_id])
-    current_price = coin_data[coin_id]['current_price']
-    coin_name = coin_data[coin_id]['name']  # Use the coin's name
+    if is_rune(coin):
+        current_price = runes_data[coin_id]['current_price']
+        coin_name = runes_data[coin_id]['name']  # Use the coin's name
+    else:  
+        current_price = coin_data[coin_id]['current_price']
+        coin_name = coin_data[coin_id]['name']
     condition = get_condition(alert_type, current_price, target_value)
     cooldown_seconds = cooldown * 3600 if cooldown is not None else None
     new_alert = create_alert(coin_id, alert_type, condition, target_value, cooldown_seconds, ctx.channel.id)
@@ -646,17 +871,23 @@ def clear_favorites(data_type, user_id):
     if data_type not in ['favorites', None]:
         return ""
 
-    favorites = load_json_file('favorites.json')
+    favorites = load_json_file('favorite_coins.json')
     if user_id in favorites:
         del favorites[user_id]  # Remove the user's favorites
 
         # Write the updated favorites back to the file
-        with open('favorites.json', 'w') as f:
+        with open('favorite_coins.json', 'w') as f:
+            f.write(json.dumps(favorites))
+    favorites = load_json_file('favorite_runes.json')
+    if user_id in favorites:
+        del favorites[user_id]  # Remove the user's favorites
+
+        # Write the updated favorites back to the file
+        with open('favorite_runes.json', 'w') as f:
             f.write(json.dumps(favorites))
 
-        return "All favorites have been cleared."
-    else:
-        return "No favorites found."
+    return "All favorites have been cleared."
+
 
 async def send_alert(channel, user_id, coin, message):
     await channel.send(f"<@{user_id}> {coin} {message}")
@@ -743,7 +974,61 @@ async def set_spam_channel(ctx, force_all_messages: bool = False, ephemeral_mess
         json.dump(spam_channels, f)
 
     await ctx.edit(content=f"Spam channel set to {ctx.channel.name}. Force ALL messages to this channel: {force_all_messages}. Force most messages invisible (BETA): {ephemeral_messages}")
-        
+
+def get_all_coins_and_runes():
+    # Load and extract coins
+    with open('favorite_coins.json', 'r') as f:
+        coins_data = json.load(f)
+    coins_list = [coin for user in coins_data.values() for coin in user]
+
+    # Load and extract runes
+    with open('favorite_runes.json', 'r') as f:
+        runes_data = json.load(f)
+    runes_list = [rune for user in runes_data.values() for rune in user['runes']]
+
+    # Load and extract alerts
+    with open('alerts.json', 'r') as f:
+        alerts_data = json.load(f)
+
+    for server in alerts_data.values():
+        for user in server.values():
+            for alert in user:
+                if is_rune(alert['coin']):  # Assuming is_rune is a function that checks if a coin is a rune
+                    runes_list.append(alert['coin'])
+                else:
+                    coins_list.append(alert['coin'])
+
+    # Convert lists to sets to remove duplicates, then convert back to lists
+    coins_list = list(set(coins_list))
+    runes_list = list(set(runes_list))
+
+    return coins_list, runes_list
+
+
+
+def save_historical_data():
+    global coin_data
+    global runes_data
+    # Get the current date and time
+    now = datetime.now()
+
+    # Check if it's around midnight
+    if now.hour == 0 and now.minute <10:
+        # Format the current date as a string
+        date_str = now.strftime('%Y-%m-%d')
+
+        # Create the file name
+        data_file = f'historical/data_{date_str}.json'
+
+        # Check if the file already exists
+        if not os.path.exists(data_file):
+            # Create a dictionary with both datasets
+            data = {'coin_data': coin_data, 'runes_data': runes_data}
+
+            # Dump the data into the file
+            with open(data_file, 'w') as f:
+                json.dump(data, f)
+
 @bot.event
 async def on_ready():
     print(f'We have logged in as {bot.user}')
@@ -752,8 +1037,19 @@ async def on_ready():
 @tasks.loop(minutes = 1)  # Create a task that runs every minute
 async def update_activity():
     global change_btc  # Declare the variable as global so we can modify it
-    price_btc, change, gecko = await get_bitcoin_price()
+    coins_list, runes_list = get_all_coins_and_runes()
+
+    if coins_list is None:
+        coins_list = ['bitcoin']
+    elif len(coins_list) > 249:
+        coins_list = coins_list[:249]
+    elif 'bitcoin' not in coins_list:
+        coins_list.append('bitcoin')
+    price_btc, change, gecko = await get_coin_data(coins_list)
+
+    await parse_rune_data(runes_list)
     price_btc = format_number(price_btc)
+    save_historical_data()
     if not gecko:
         if price_btc == .999:
             return
@@ -771,5 +1067,3 @@ async def update_activity():
 
 
 bot.run(token)
-
-
