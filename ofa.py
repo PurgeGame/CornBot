@@ -91,6 +91,12 @@ async def send_advice(ctx, action, coin, buy_time, buy_price, leverage, emoji):
     if leverage is None:
         await ctx.edit(content=f'Official Financial Advice: Play Purge Game')
     elif leverage > 0:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}, with {leverage}x leverage. {emoji}')
+        if is_rune(coin):
+            await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at {format_number(buy_price)} sats, with {leverage}x leverage. {emoji}')
+        else:
+            await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}, with {leverage}x leverage. {emoji}')
     else:
-        await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}. {emoji}')
+        if is_rune(coin):
+            await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at {format_number(buy_price)} sats. {emoji}')
+        else:
+            await ctx.edit(content=f'Official Financial Advice: {action} {coin} {buy_time} at ${format_number(buy_price)}. {emoji}')
