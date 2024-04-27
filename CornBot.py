@@ -248,7 +248,7 @@ async def create_table_runes(runes,user_id):
         value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
   
        
-        if volume_24h == 'N/A' or rune_data['volume_24h'] < 2000000:
+        if volume_24h == 'N/A' or rune_data['volume_24h'] < 1000000:
             volume_24h = 0
             price = 'N/A'
             market_cap = 'N/A'
