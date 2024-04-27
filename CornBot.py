@@ -183,15 +183,17 @@ async def price(ctx, items: str, include_historical: bool = False):
                         rune_data[rune_id] = runes_data[rune_id]
 
         else:
-            print(item)
+
             coin_id = await check_coin(item)
-            print(coin_id)
+
             if coin_id:
                 if coin_id not in coin_data:
                     response = await fetch_coin_data([coin_id])
                     if response:
                         if coin_id in coin_data:
                             coins_data[coin_id] = coin_data[coin_id]
+                else:
+                    coins_data[coin_id] = coin_data[coin_id]
     if rune_data == {} and coins_data == {}:
         await ctx.edit(content="Item not found.")
         return
