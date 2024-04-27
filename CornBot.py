@@ -519,25 +519,24 @@ async def parse_rune_data(rune_list):
         now = datetime.now()
     
 
-        # If it's :00 or :01, update the price list
-        if now.minute in [0, 1]:
-            # If the coin data doesn't exist, initialize it with an empty list
-            if coin_id not in runes_data or 'price_list' not in runes_data[coin_id]:
-                runes_data[coin_id] = {'price_list': []}
+        
+        # If the coin data doesn't exist, initialize it with an empty list
+        if coin_id not in runes_data or 'price_list' not in runes_data[coin_id]:
+            runes_data[coin_id] = {'price_list': []}
 
-            # If the price list has more than 24 items, remove the oldest one
-            if 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) >= 24:
-                runes_data[coin_id]['price_list'].pop(0)
+        # If the price list has more than 24 items, remove the oldest one
+        if 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) >= 24*60:
+            runes_data[coin_id]['price_list'].pop(0)
 
-            # Add the current price to the price list
-            if 'price_list' not in runes_data[coin_id]:
-                runes_data[coin_id]['price_list'] = []
+        # Add the current price to the price list
+        if 'price_list' not in runes_data[coin_id]:
+            runes_data[coin_id]['price_list'] = []
 
-            runes_data[coin_id]['price_list'].append(current_price)
+        runes_data[coin_id]['price_list'].append(current_price)
 
         # Calculate the percentage change in the current price versus the oldest data in the price list
         # Only when the price list has a full 24 hours of data
-        if coin_id in runes_data and 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) == 24:
+        if coin_id in runes_data and 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) == 24*60:
             oldest_price = runes_data[coin_id]['price_list'][0]
             change_24h = ((current_price - oldest_price) / oldest_price) * 100
         else:
