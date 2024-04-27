@@ -7,3 +7,4 @@ myenv/
 !alerts_fallback.json
 !favorite_runes_fallback.json
 test.py
+/__pycache__/
