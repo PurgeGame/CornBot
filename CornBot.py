@@ -206,7 +206,7 @@ async def create_table_coins(coins_data, display_id, include_historical=False):
     for coin_id, coin_data in coins_data.items():  # renamed from prices to coin_data
         name = truncate_name(coin_data['name'],20)
         market_cap = format_number(coin_data['market_cap']) if format_number(coin_data['market_cap']) != 0 else 'N/A'
-        price = format_number(coin_data['current_price']) if coin_data['current_price'] else 'N/A'
+        price = format_number(coin_data['current_price'],bitcoin=True) if coin_data['current_price'] else 'N/A'
         change_24h = format_change(coin_data['change_24h']) if coin_data['change_24h'] else 'N/A'
         ath_change = format_change(coin_data['ath_change_percentage']) if coin_data['ath_change_percentage'] else 'N/A'
         if include_historical:

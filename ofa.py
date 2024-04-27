@@ -1,6 +1,6 @@
 import random
 from utils import *
-import datetime
+from datetime import datetime
 def get_coins(user_id, favorites):
     coins = []
     if random.random() < .5:
