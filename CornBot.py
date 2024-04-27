@@ -304,7 +304,7 @@ async def display_runes(ctx, runes_data):
     if ath:
         await ctx.send(content=f'Total portfolio value: {total_value}, a new ATH!')
     else:
-        await ctx.send(content=f'Total potrfolio value: {total_value}')
+        await ctx.send(content=f'Total portfolio value: {total_value}')
             
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx, include_historical: Optional[bool] = False):
@@ -951,7 +951,8 @@ def clear_favorites(data_type, user_id):
     return "All favorites have been cleared."
 
 
-async def send_alert(channel, user_id, coin, message):
+async def send_alert(channel_id, user_id, coin, message):
+    channel = await bot.fetch_channel(int(channel_id))
     await channel.send(f"<@{user_id}> {coin} {message}")
     return time.time()
 
@@ -992,21 +993,21 @@ async def check_alerts():
                     if cooldown is not None and time.time() - last_triggered < cooldown:
                         continue
                     channel_id = spam_channels.get(server_id, {}).get('channel_id', alert['channel_id'])
-                    channel = await bot.fetch_channel(int(channel_id))
+                    
 
                     if alert['alert_type'] == 'price' and check_price_alert(alert, current_price):
-                        alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"price is now {alert['condition']} {alert['target']}")
+                        alert['last_triggered'] = await send_alert(channel_id, user_id, coin_name, f"price is now {alert['condition']} {alert['target']}")
                         if cooldown is None:
                             continue  
 
                     elif alert['alert_type'] == 'change' and check_change_alert(alert, change_24h):
                         change_type = "up" if change_24h > 0 else "down"
-                        alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"is {change_type} {abs(round(change_24h,1))}% in the last 24h")
+                        alert['last_triggered'] = await send_alert(channel_id, user_id, coin_name, f"is {change_type} {abs(round(change_24h,1))}% in the last 24h")
                         if cooldown is None:
                             continue  
 
                     elif alert['alert_type'] == 'ath' and check_ath_alert(alert, ath_date):
-                        alert['last_triggered'] = await send_alert(channel, user_id, coin_name, f"price has reached a new All-Time High of {ath}!")
+                        alert['last_triggered'] = await send_alert(channel_id, user_id, coin_name, f"price has reached a new All-Time High of {ath}!")
                         if cooldown is None:
                             continue  
 
