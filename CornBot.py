@@ -164,6 +164,7 @@ async def check_coin(coin):
     
 @bot.slash_command(name="price", description="Show the current price for a coin or rune")
 async def price(ctx, items: str, include_historical: bool = False):
+    global runes_data
     await ctx.defer()
     # Split the items parameter by commas to get a list of items
     items = [item.strip() for item in items.split(',')]
@@ -172,16 +173,19 @@ async def price(ctx, items: str, include_historical: bool = False):
     for item in items:
         if is_rune(item):
             rune_id = sanitize_rune(item)
-            print(rune_id)
             if rune_id:
-                data = await fetch_rune_data(rune_id)
-                print(data)
-                if data and rune_id in data:
-                    rune_data[rune_id] = data[rune_id]
+                if rune_id in runes_data:
+                    rune_data[rune_id] = runes_data[rune_id]
+                else:
+                    data = await parse_rune_data(rune_id)
+                    if data:
+                        rune_data[rune_id] = runes_data[rune_id]
+
         else:
             coin_id = await check_coin(item)
             if coin_id:
                 data = await fetch_coin_data([coin_id])
+  
                 if data and coin_id in data:
                     coins_data[coin_id] = data[coin_id]
 
@@ -190,7 +194,7 @@ async def price(ctx, items: str, include_historical: bool = False):
         return
 
     if rune_data:
-        await display_runes(ctx, rune_data, include_historical = include_historical)
+        await display_runes(ctx, rune_data)
     if coins_data:
         await display_coins(ctx, coins_data, include_historical = include_historical)
 
@@ -600,14 +604,13 @@ async def fetch_coin_data(coin_ids):
 
 
 async def fetch_rune_data(rune_name):
-    print(rune_name)
+    
     url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/market/{rune_name}/info"
     headers = {"Authorization": f"Bearer {MAGIC_EDEN_API}"}
 
     async with aiohttp.ClientSession() as session:
 
         async with session.get(url, headers=headers) as response:
-            print(response.status)
             if response.status == 200 and response.content_type == 'application/json':
                 data = await response.json()
                 
