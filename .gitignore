@@ -8,3 +8,5 @@ myenv/
 !favorite_runes_fallback.json
 test.py
 /__pycache__/
+__pycache__/ofa.cpython-312.pyc
+__pycache__/utils.cpython-312.pyc
