@@ -6,3 +6,4 @@ myenv/
 !favorite_coins_fallback.json
 !alerts_fallback.json
 !favorite_runes_fallback.json
+test.py
