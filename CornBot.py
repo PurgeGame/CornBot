@@ -165,6 +165,7 @@ async def check_coin(coin):
 @bot.slash_command(name="price", description="Show the current price for a coin or rune")
 async def price(ctx, items: str, include_historical: bool = False):
     global runes_data
+    global coin_data
     await ctx.defer()
     # Split the items parameter by commas to get a list of items
     items = [item.strip() for item in items.split(',')]
@@ -182,13 +183,15 @@ async def price(ctx, items: str, include_historical: bool = False):
                         rune_data[rune_id] = runes_data[rune_id]
 
         else:
+            print(item)
             coin_id = await check_coin(item)
+            print(coin_id)
             if coin_id:
-                data = await fetch_coin_data([coin_id])
-  
-                if data and coin_id in data:
-                    coins_data[coin_id] = data[coin_id]
-
+                if coin_id not in coin_data:
+                    response = await fetch_coin_data([coin_id])
+                    if response:
+                        if coin_id in coin_data:
+                            coins_data[coin_id] = coin_data[coin_id]
     if rune_data == {} and coins_data == {}:
         await ctx.edit(content="Item not found.")
         return
