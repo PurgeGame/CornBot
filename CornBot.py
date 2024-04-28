@@ -14,8 +14,10 @@ import time
 from datetime import datetime, timezone, timedelta
 from utils import *
 from ofa import *
+from discord import File
 import glob
 import shutil
+import matplotlib.pyplot as plt
 load_dotenv()
 coin_data = {}
 runes_data = {}
@@ -161,6 +163,28 @@ async def check_coin(coin):
     else: 
         return False
     
+@bot.slash_command(name="graph", description="Generates a graph")
+async def graph(ctx: commands.Context, rune: str, start: str = "2024-04-26T00:00:00", interval: str = "1m"):
+    global runes_data
+    await ctx.defer()
+    price_list = runes_data[rune]['price_list']
+
+    # Generate a list of timestamps for the x-axis
+    timestamps = range(len(price_list))
+
+    plt.plot(timestamps, price_list)
+
+    plt.xlabel('Time (in minutes)')
+    plt.ylabel('Price')
+    plt.title(f'Price Graph for {rune['name']}')
+
+    # Save the graph as an image file
+    plt.savefig('graph.png')
+
+    # Send the image file in Discord
+    await ctx.send(file=File('graph.png'))
+
+
     
 @bot.slash_command(name="price", description="Show the current price for a coin or rune")
 async def price(ctx, items: str, include_historical: bool = False):
