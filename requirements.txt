@@ -2,4 +2,4 @@ aiohttp>=3.9.3
 py-cord>=2.5.0
 prettytable>=3.10.0
 Requests>=2.31.0
-matplotlib>=3.4.2
+

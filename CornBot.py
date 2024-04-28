@@ -245,29 +245,31 @@ async def create_table_runes(runes,user_id):
 
     total_value = 0
     rows = []  # Store the rows here first
+    skipped = 0
     for coin_id, rune_data in runes.items():
         owned_runes = check_coin_quantity(user_id, coin_id)
         quantity_owned = float(owned_runes['balance']) if owned_runes is not None and 'balance' in owned_runes else 0
         unformatted_price = rune_data['current_price']
-
+        name = rune_data['name'].replace("•", " ")
         symbol = rune_data['symbol'] if rune_data['symbol'] else ''
-        name = truncate_name(rune_data['name'],20)
+        name = truncate_name(name,20)
+        
         market_cap = format_number(rune_data['market_cap']) if format_number(rune_data['market_cap']) != 0 else 'N/A'
         price = format_number(rune_data['current_price']) if rune_data['current_price'] else 'N/A'
         change_24h = format_change(rune_data['change_24h']) if rune_data['change_24h'] else 'N/A'
         sat_price = float(coin_data['bitcoin']['current_price']) / 100000000
         volume_24h = format_number(int(rune_data['volume_24h']) * sat_price) if rune_data['volume_24h'] else 'N/A'
 
-        
         value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
-  
-       
+
         if volume_24h == 'N/A' or rune_data['volume_24h'] < 1000000:
             volume_24h = 0
             price = 'N/A'
             market_cap = 'N/A'
             change_24h = 'N/A'
             value = 'N/A'
+            skipped+=1
+            continue
         if value != 'N/A':
             total_value += quantity_owned * unformatted_price * sat_price
         quantity_owned = format_number_with_symbol(quantity_owned,symbol) if quantity_owned is not None else '0'
@@ -276,9 +278,15 @@ async def create_table_runes(runes,user_id):
 
     # Sort the rows by value (assuming value is a float)
     rows.sort(key=lambda row: convert_to_float(row[-1].replace(',', '').replace('$', '')) if row[-1] != 'N/A' else 0, reverse=True)
+
+    counter = 0  # Reset the counter
     # Add the sorted rows to the table
     for row in rows:
+        # Alternate the case of the name
+        row[0] = row[0].upper() if counter % 2 == 0 else row[0].lower()
         table.add_row(row)
+        counter += 1
+
     ath = False
     with open('favorite_runes.json', 'r+') as f:
         favorite_runes = json.load(f)
@@ -289,7 +297,7 @@ async def create_table_runes(runes,user_id):
             f.truncate()  # Remove any remaining content
             ath = True
 
-    return table,total_value,ath
+    return table,total_value,ath,skipped
 
 async def display_coins(ctx, coins_data, display_id=False, include_historical=False):
     filtered_coins = {coin_id: coin_data for coin_id, coin_data in coins_data.items()}
@@ -307,7 +315,7 @@ async def display_coins(ctx, coins_data, display_id=False, include_historical=Fa
         await ctx.send(content=message)
 
 async def display_runes(ctx, runes_data):
-    table, total_value,ath = await create_table_runes(runes_data, str(ctx.author.id))
+    table, total_value,ath,skipped = await create_table_runes(runes_data, str(ctx.author.id))
     messages = await split_table(table)
     total_value = format_number_with_symbol(total_value,'USD',True,bitcoin=True)
     await ctx.edit(content=messages[0])
@@ -315,10 +323,7 @@ async def display_runes(ctx, runes_data):
         await ctx.send(content=message)
 
     # Send a message about the total value
-    if ath:
-        await ctx.send(content=f'Total portfolio value: {total_value}, a new ATH!')
-    else:
-        await ctx.send(content=f'Total portfolio value: {total_value}')
+    await ctx.send(content=(f"Skipped {skipped} runes with no volume. " if skipped > 0 else "") + (f'Total portfolio value: {total_value}, a new ATH!' if ath else f'Total portfolio value: {total_value}'))
             
 @bot.slash_command(name="coins", description="Show current prices for your favorite coins")
 async def coins(ctx, include_historical: Optional[bool] = False):
