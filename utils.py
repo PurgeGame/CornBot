@@ -67,7 +67,7 @@ def format_number(num, integer=False,bitcoin = False):
         elif num >= 1e6:
             return f'{num/1e6:,.0f} M'
         elif num >= 1e4 and bitcoin == False:
-            return f'{num/1000:,.0f} K'
+            return f'{num/1000:,.0f} k'
         elif num >= 1e3:
             return f'{int(num):,}'
         elif num >= 1:

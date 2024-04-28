@@ -420,17 +420,30 @@ def add_rune_data(user_id, rune_data):
 
 @bot.slash_command(name="search", description="Search for coins by name and display their IDs, price, and market cap")
 async def search_coins(ctx, query: str, num: Optional[int] = 10):
+    global runes_data
     await ctx.defer()
-    url = f'https://api.coingecko.com/api/v3/search?query={query}'
-    matching_coins = await fetch_data_from_api(url)
-    matching_ids = [coin['id'] for coin in matching_coins['coins'][:num]]
-    
-    if not matching_ids:
-        await ctx.edit(content="No matching coins found.")
-        return
+    coin_data = {}
+    if is_rune(query):
+        rune_id = sanitize_rune(query)
+        if rune_id:
+            # Iterate over the data
+            for id, item in runes_data.items():
+                # Check if the ID contains the search string
+                if rune_id in id:
+                    # Add the item to the dictionary
+                    coin_data[id] = item
+        await display_runes(ctx, coin_data)
+    else: 
+        url = f'https://api.coingecko.com/api/v3/search?query={query}'
+        matching_coins = await fetch_data_from_api(url)
+        matching_ids = [coin['id'] for coin in matching_coins['coins'][:num]]
+        
+        if not matching_ids:
+            await ctx.edit(content="No matching coins found.")
+            return
 
-    coin_data = await fetch_coin_data(matching_ids)
-    await display_coins(ctx, coin_data, display_id=True)
+        coin_data = await parse_data(matching_ids)
+        await display_coins(ctx, coin_data, display_id=True)
 
 
 @bot.slash_command(name="ofa", description="Gives Official Financial Advice")
