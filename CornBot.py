@@ -1106,22 +1106,18 @@ def save_historical_data():
     global runes_data
     # Get the current date and time
     now = datetime.now()
-    # Check if it's around midnight
-    if now.hour == 0 and now.minute <5:
-        # Format the current date as a string
-        date_str = now.strftime('%Y-%m-%d')
 
-        # Create the file name
-        data_file = f'historical/data_{date_str}.json'
+    date_str = now.strftime('%Y-%m-%d')
 
-        # Check if the file already exists
-        if not os.path.exists(data_file):
-            # Create a dictionary with both datasets
-            data = {'coin_data': coin_data, 'runes_data': runes_data}
+    # Create the file name
+    data_file = f'historical/data_{date_str}.json'
 
-            # Dump the data into the file
-            with open(data_file, 'w') as f:
-                json.dump(data, f)
+    # Create a dictionary with both datasets
+    data = {'coin_data': coin_data, 'runes_data': runes_data}
+
+    # Dump the data into the file
+    with open(data_file, 'w') as f:
+        json.dump(data, f)
 
 @bot.event
 async def on_ready():
