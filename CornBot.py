@@ -562,7 +562,7 @@ async def parse_rune_data(rune_list):
 
         # Calculate the percentage change in the current price versus the oldest data in the price list
         # Only when the price list has a full 24 hours of data
-        if coin_id in runes_data and 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) == 24*60:
+        if coin_id in runes_data and 'price_list' in runes_data[coin_id] and len(runes_data[coin_id]['price_list']) >= 23*60 and runes_data[coin_id]['price_list'][0] != 0:
             oldest_price = runes_data[coin_id]['price_list'][0]
             change_24h = ((current_price - oldest_price) / oldest_price) * 100
         else:
