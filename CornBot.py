@@ -1103,7 +1103,8 @@ def get_all_coins_and_runes():
 async def check_price_change():
     global runes_data
 
-    channel = 1221355803534032899  # Replace with your channel ID
+    channel_id = 1110565848365666334  # Replace with your channel ID
+    channel = await bot.fetch_channel(int(channel_id))
 
     for rune, data in runes_data.items():
         current_price = data['price_list'][-1]  # Fetch the most recent price
@@ -1113,7 +1114,7 @@ async def check_price_change():
             price_change = current_price - old_price
             change_percentage = price_change / old_price * 100
             if change_percentage > 5:  # Calculate the price change
-                await channel.send(f'The price of {rune} has increased by {price_change} ({change_percentage}) in the last minute.')
+                await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} in the last minute.')
 
 
 

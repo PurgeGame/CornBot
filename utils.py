@@ -117,7 +117,10 @@ def truncate_name(name, max_length=15):
 def format_change(change):
     if change is None:
         return 'N/A'
-    return f"{'+-'[change < 0]}{abs(change):.1f}%"
+    elif change < 0:
+        return f"({abs(change):.1f}%)"
+    else:
+        return f"+{change:.1f}%"
 
 async def split_table(table, limit=2000):
     messages = []
