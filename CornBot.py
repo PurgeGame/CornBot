@@ -1100,6 +1100,22 @@ def get_all_coins_and_runes():
     return coins_list, runes_list
 
 
+async def check_price_change():
+    global runes_data
+
+    channel = 1221355803534032899  # Replace with your channel ID
+
+    for rune, data in runes_data.items():
+        current_price = data['price_list'][-1]  # Fetch the most recent price
+        old_price = data['price_list'][-2] if len(data['price_list']) >= 2 else None  # Get the price from 55 minutes ago
+
+        if old_price is not None and old_price != 0:
+            price_change = current_price - old_price
+            change_percentage = price_change / old_price * 100
+            if change_percentage > 5:  # Calculate the price change
+                await channel.send(f'The price of {rune} has increased by {price_change} ({change_percentage}) in the last minute.')
+
+
 
 def save_historical_data():
     global coin_data
@@ -1141,6 +1157,7 @@ async def update_activity():
     price_btc = format_number(price_btc,bitcoin=True)
     save_historical_data()
     await check_alerts()
+    await check_price_change()
 
     if not gecko:
         if price_btc == .999:
