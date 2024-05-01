@@ -259,17 +259,19 @@ async def create_table_runes(runes,user_id):
         change_24h = format_change(rune_data['change_24h']) if rune_data['change_24h'] else 'N/A'
         sat_price = float(coin_data['bitcoin']['current_price']) / 100000000
         volume_24h = format_number(int(rune_data['volume_24h']) * sat_price) if rune_data['volume_24h'] else 'N/A'
+        volume_7d = format_number(int(rune_data['volume_7d']) * sat_price) if rune_data['volume_7d'] else 'N/A'
 
         value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
 
         if volume_24h == 'N/A' or rune_data['volume_24h'] < 1000000:
-            volume_24h = 0
-            price = 'N/A'
-            market_cap = 'N/A'
-            change_24h = 'N/A'
-            value = 'N/A'
-            skipped+=1
-            continue
+            if volume_7d == 'N/A' or rune_data['volume_7d'] < 3000000:
+                volume_24h = 0
+                price = 'N/A'
+                market_cap = 'N/A'
+                change_24h = 'N/A'
+                value = 'N/A'
+                skipped+=1
+                continue
         if value != 'N/A':
             total_value += quantity_owned * unformatted_price * sat_price
         quantity_owned = format_number_with_symbol(quantity_owned,symbol) if quantity_owned is not None else '0'
@@ -535,8 +537,10 @@ async def parse_rune_data(rune_list):
         number = new_data.get('runeNumber', None)
         current_price = float(new_data.get('floorUnitPrice', {}).get('formatted', '0'))  # Convert from BTC to sats
         market_cap_in_btc = new_data.get('marketCap', 0)
-        volume_24h = new_data.get('volume', {}).get('24h', 0)
-
+        volume_24h = new_data.get('volume', {}).get('1d', 0)
+        volume_7d = new_data.get('volume', {}).get('7d', 0)
+        if volume_24h < 1000000 and volume_7d < 3000000:
+            current_price = 0
         # Convert the market cap from Bitcoin to dollars
         btc_price_in_usd = coin_data['bitcoin']['current_price']
         market_cap_in_usd = market_cap_in_btc * btc_price_in_usd
@@ -558,7 +562,7 @@ async def parse_rune_data(rune_list):
         if 'price_list' not in runes_data[coin_id]:
             runes_data[coin_id]['price_list'] = []
 
-        runes_data[coin_id]['price_list'].append(current_price)
+        runes_data[coin_id]['price_list'].append(round_sig(current_price,3))
 
         # Calculate the percentage change in the current price versus the oldest data in the price list
         # Only when the price list has a full 24 hours of data
@@ -608,6 +612,7 @@ async def parse_rune_data(rune_list):
             'change_7d': None,
             'ath_change_percentage': ath_change_percentage,
             'volume_24h': volume_24h,
+            'volume_7d': volume_7d,
         })
 
     return runes_data
@@ -628,9 +633,11 @@ async def fetch_coin_data(coin_ids):
 
 
 
-async def fetch_rune_data(rune_name):
-    
-    url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/market/{rune_name}/info"
+async def fetch_rune_data(rune_name,type = 'price',offset = 0):
+    if type == 'transactions':
+        url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/activities/{rune_name}?offset={offset}"
+    else:
+        url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/market/{rune_name}/info"
     headers = {"Authorization": f"Bearer {MAGIC_EDEN_API}"}
 
     async with aiohttp.ClientSession() as session:
@@ -1099,11 +1106,43 @@ def get_all_coins_and_runes():
 
     return coins_list, runes_list
 
+def get_latest_transaction_date(transactions):
+    # Parse the dates and convert them to datetime objects
+    dates = [datetime.strptime(txn['createdAt'], "%Y-%m-%dT%H:%M:%S.%fZ") for txn in transactions]
+
+    # Get the latest date
+    latest_date = max(dates)
+
+    return latest_date
+
+def filter_transactions(transactions, kind):
+    return [txn for txn in transactions if txn['kind'] == kind]
+
+
+async def secondary_check_price_change(rune): 
+    global runes_data
+    now = datetime.now()
+    c=0
+    data = []
+    while True:
+        new_data = await fetch_rune_data(rune,'transactions',c*100)
+        data.extend(new_data)
+        c+=1
+        if get_latest_transaction_date(new_data) > now - timedelta(minutes=5):
+            break
+    buys = filter_transactions(data, 'buying_broadcasted')
+    listings = filter_transactions(data,'create_sell_order')
+    cancels = filter_transactions(data,'order_cancelled')
+    sold = filter_transactions(data,'sent')
+
+
+
+
 
 async def check_price_change():
     global runes_data
 
-    channel_id = 1110565848365666334  # Replace with your channel ID
+    channel_id = 866304139741888573  # Replace with your channel ID
     channel = await bot.fetch_channel(int(channel_id))
 
     for rune, data in runes_data.items():
@@ -1114,6 +1153,7 @@ async def check_price_change():
             price_change = current_price - old_price
             change_percentage = price_change / old_price * 100
             if change_percentage > 5:  # Calculate the price change
+                ##message = await secondary_check_price_change(rune)
                 await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} in the last minute.')
 
 
@@ -1159,6 +1199,7 @@ async def update_activity():
     save_historical_data()
     await check_alerts()
     await check_price_change()
+  
 
     if not gecko:
         if price_btc == .999:

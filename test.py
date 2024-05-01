@@ -8,8 +8,8 @@ MAGIC_EDEN_API = os.getenv("MAGIC_EDEN_API")
 
 c = 0
 responses = []
-while c < 2000:
-    url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/wallet/activities/bc1ph974u0ppyl4z6k0u9u895wwx3ztj98cahk2lklzhr4spww2pdjcq7pk6ly?offset={c}"
+while c < 3:
+    url = f"https://api-mainnet.magiceden.dev/v2/ord/btc/runes/activities/SATOSHINAKAMOTO"
     headers = {"Authorization": f"Bearer {MAGIC_EDEN_API}"}
     response = requests.get(url, headers=headers)
     responses.append(json.loads(response.text))  # Parse the JSON response and add it to the list
