@@ -17,10 +17,15 @@ from ofa import *
 from discord import File
 import glob
 import shutil
+from bs4 import BeautifulSoup
 
 load_dotenv()
 coin_data = {}
 runes_data = {}
+all_transactions = {}
+if os.path.exists('all_transactions.json'):
+    with open('all_transactions.json', 'r') as f:
+        all_transactions = json.load(f)
 
 def check_and_copy_files(file_paths, fallback_paths):
     for file_path, fallback_path in zip(file_paths, fallback_paths):
@@ -236,7 +241,7 @@ async def create_table_coins(coins_data, display_id, include_historical=False):
 
 async def create_table_runes(runes,user_id):
     global coin_data
-    field_names = [ 'Name', 'Price', 'Δ 24h', 'M Cap', '24h VOL', 'Owned', 'Value']
+    field_names = [ 'Name', 'Price', 'Δ 24h', 'M Cap', 'Vol', 'Mints', 'Value', 'S']
     table = PrettyTable()
     table.field_names = field_names
     table.align = 'r'  # right-align data
@@ -247,6 +252,7 @@ async def create_table_runes(runes,user_id):
     rows = []  # Store the rows here first
     skipped = 0
     for coin_id, rune_data in runes.items():
+        
         owned_runes = check_coin_quantity(user_id, coin_id)
         quantity_owned = float(owned_runes['balance']) if owned_runes is not None and 'balance' in owned_runes else 0
         unformatted_price = rune_data['current_price']
@@ -258,13 +264,26 @@ async def create_table_runes(runes,user_id):
         price = format_number(rune_data['current_price']) if rune_data['current_price'] else 'N/A'
         change_24h = format_change(rune_data['change_24h']) if rune_data['change_24h'] else 'N/A'
         sat_price = float(coin_data['bitcoin']['current_price']) / 100000000
-        volume_24h = format_number(int(rune_data['volume_24h']) * sat_price) if rune_data['volume_24h'] else 'N/A'
+        volume_24h = format_number(int(int(rune_data['volume_24h']) * sat_price), vol = True) if rune_data['volume_24h'] else 'N/A'
         volume_7d = format_number(int(rune_data['volume_7d']) * sat_price) if rune_data['volume_7d'] else 'N/A'
+        volume_24h_calc = int(rune_data['volume_24h']) * sat_price if rune_data['volume_24h'] else 'N/A'
+        
+        amount = rune_data.get('mint_amount', 'N/A')
+        if amount != 'N/A':
+            try:
+                mints_owned = quantity_owned / float(str(amount).replace(',', ''))
+            except ValueError:
+                mints_owned = quantity_owned
+        else:  
+            mints_owned = quantity_owned
 
-        value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
+        try:
+            value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
+        except ValueError:
+            value = 'N/A'
 
-        if volume_24h == 'N/A' or rune_data['volume_24h'] < 1000000:
-            if volume_7d == 'N/A' or rune_data['volume_7d'] < 3000000:
+        if volume_24h == 'N/A' or rune_data.get('volume_24h', 0) < 1000000:
+            if volume_7d == 'N/A' or rune_data.get('volume_7d', 0) < 3000000:
                 volume_24h = 0
                 price = 'N/A'
                 market_cap = 'N/A'
@@ -272,14 +291,30 @@ async def create_table_runes(runes,user_id):
                 value = 'N/A'
                 skipped+=1
                 continue
-        if value != 'N/A':
-            total_value += quantity_owned * unformatted_price * sat_price
-        quantity_owned = format_number_with_symbol(quantity_owned,symbol) if quantity_owned is not None else '0'
-        row_data = [name, price, change_24h, market_cap, volume_24h, quantity_owned, value]
+        try:
+            if value != 'N/A':
+                total_value += quantity_owned * unformatted_price * sat_price
+        except ValueError:
+            total_value = 0
+
+        if amount != 'N/A':
+            try:
+                mints_owned = quantity_owned / float(str(amount).replace(',', ''))
+            except ValueError:
+                mints_owned = quantity_owned
+        if mints_owned != 'N/A':
+            quantity_owned = mints_owned
+        if volume_24h_calc != 'N/A':
+            if volume_24h_calc < 1000:
+                volume_24h = '<1k'
+        else:
+            volume_24h = '<1k'
+        quantity_owned = format_number(quantity_owned) if quantity_owned is not None else '0'
+        row_data = [name, price, change_24h, market_cap, volume_24h, quantity_owned, value,symbol]
         rows.append(row_data)  # Add the row data to the list
 
     # Sort the rows by value (assuming value is a float)
-    rows.sort(key=lambda row: convert_to_float(row[-1].replace(',', '').replace('$', '')) if row[-1] != 'N/A' else 0, reverse=True)
+    rows.sort(key=lambda row: convert_to_float(row[-2].replace(',', '').replace('$', '')) if row[-2] != 'N/A' else 0, reverse=True)
 
     counter = 0  # Reset the counter
     # Add the sorted rows to the table
@@ -528,8 +563,12 @@ from datetime import datetime
 async def parse_rune_data(rune_list):
     global runes_data  # Use the global variable
     global coin_data
+    if isinstance(rune_list, str):
+        rune_list = [rune_list]
 
     for rune in rune_list:
+        if 'divisibility' not in runes_data[rune]:
+            await add_mint_data(rune)
         new_data = await fetch_rune_data(rune)  # Assuming fetch_rune_data is a function that fetches data for a rune
         coin_id = new_data.get('rune', None)
         symbol = new_data.get('symbol', None)
@@ -645,8 +684,8 @@ async def fetch_rune_data(rune_name,type = 'price',offset = 0):
         async with session.get(url, headers=headers) as response:
             if response.status == 200 and response.content_type == 'application/json':
                 data = await response.json()
-                
-                if isinstance(data, dict) and 'rune' in data:
+
+                if data:
                     return data
                 else:
                     return {}
@@ -1119,28 +1158,176 @@ def filter_transactions(transactions, kind):
     return [txn for txn in transactions if txn['kind'] == kind]
 
 
-async def secondary_check_price_change(rune): 
+def snipe_filter(rune, transactions):
     global runes_data
-    now = datetime.now()
+    if 'divisibility' in runes_data[rune]:
+        divisibility = int(runes_data[rune]['divisibility'])
+    else:
+        return []
+    # Get the current price of the rune
+    current_price = runes_data.get(rune, {}).get('current_price')
+
+
+    # Check if the current price is not None
+    if current_price is None:
+        print(f"No current price found for rune: {rune}")
+        return []
+
+    # Initialize an empty list to store the transactions where the price per unit is below the current price
+    below_current_price_transactions = []
+
+    # Iterate over the transactions
+    for txn in transactions:
+        # Calculate the price per unit for the transaction
+        price_per_unit = float(txn['listedPrice'])/((float(txn['amount']) / 10**divisibility))
+
+        # Check if the price per unit is below the current price
+        if price_per_unit < current_price * 0.95:
+            # If it is, add the transaction to the list
+            below_current_price_transactions.append(txn)
+
+    # Initialize an empty list to store the transactions where the total value at the new current price is more than $200
+    valuable_transactions = []
+
+    # Iterate over the transactions where the price per unit is below the current price
+    for txn in below_current_price_transactions:
+        # Calculate the total value at the new current price
+        total_value = float(txn['listedPrice']) * float(txn['btcUsdPrice']) / 1e8
+        # Check if the total value is more than $200
+        if total_value > 200:
+            # If it is, add the total value to the transaction data
+            total_value = int(total_value)
+            txn['total_value'] = total_value
+
+            # Add the transaction to the list
+            valuable_transactions.append(txn)
+
+    return valuable_transactions
+
+
+def snipe_check(rune, buys, sold):
+    global runes_data
+
+    # Create a set of the selling transactions' txIds and mempoolTxIds
+    selling_set = {txn.get('txId', '') for txn in sold}
+    selling_set.update({txn.get('mempoolTxId', '') for txn in sold})
+
+    # Create a dictionary of the buying transactions' mempoolTxIds
+    buying_dict = {}
+    for buy in buys:
+        mempoolTxId = buy.get('mempoolTxId', '')
+        if mempoolTxId not in buying_dict:
+            buying_dict[mempoolTxId] = buy
+
+    # Filter the buying transactions to get only the ones that haven't been sold and don't have duplicate mempoolTxIds
+    unsold_orders = [buy for buy in buying_dict.values() if buy.get('txId', '') not in selling_set and buy.get('mempoolTxId', '') not in selling_set]
+
+    # Filter out transactions that are more than an hour old
+    unsold_orders = [order for order in unsold_orders if parse(order['createdAt']).replace(tzinfo=timezone.utc) > datetime.now(timezone.utc) - timedelta(hours=1)]
+    snipes = snipe_filter(rune,unsold_orders)
+
+    return snipes
+
+
+
+
+async def secondary_check_price_change(rune):
+    global runes_data 
+    global all_transactions
+    if 'divisibility' not in runes_data[rune]:
+        return
+    else:
+        divisibility = int(runes_data[rune]['divisibility'])
+    if runes_data.get(rune,{}).get('volume_24h',0) <= 1000000:
+        return
     c=0
-    data = []
     while True:
         new_data = await fetch_rune_data(rune,'transactions',c*100)
-        data.extend(new_data)
-        c+=1
-        if get_latest_transaction_date(new_data) > now - timedelta(minutes=5):
+        # Check if new_data is empty
+        if not new_data:
             break
-    buys = filter_transactions(data, 'buying_broadcasted')
-    listings = filter_transactions(data,'create_sell_order')
-    cancels = filter_transactions(data,'order_cancelled')
-    sold = filter_transactions(data,'sent')
+        # Add the new transactions to the dictionary
+        all_transactions.update({txn['id']: txn for txn in new_data if datetime.now(timezone.utc) - parse(txn['createdAt']) <= timedelta(hours=2)})
+        # Check if any of the new transactions are already in the dictionary
+        if any(txn['id'] in all_transactions for txn in new_data):
+            break
+        # Check if any of the transactions are more than 2 hours old
+        if any(datetime.now(timezone.utc) - parse(txn['createdAt']) > timedelta(hours=2) for txn in new_data):
+            break
+        c+=1
+
+# Save the transactions to the JSON file
+    with open('all_transactions.json', 'w') as f:
+        json.dump(all_transactions, f)
+
+        buys = filter_transactions(all_transactions.values(), 'buying_broadcasted')
+
+        sold = filter_transactions(all_transactions.values(),'sent')
+
+        # listings = filter_transactions(all_transactions.values(),'create_sell_order')
+        # cancels = filter_transactions(all_transactions.values(),'order_cancelled')
 
 
+        # Create a set of the selling transactions
 
+    snipes = snipe_check(rune,buys,sold)
+    # Calculate the number of runes and the price per rune for each snipe
+    snipe_info = [
+        {
+            'txId': snipe['mempoolTxId'],
+            'total_value': snipe.get('total_value', 'N/A'),
+            'number_of_runes': float(snipe['amount']) / (10 ** divisibility),
+            'price_per_rune': float(snipe['listedPrice']) / (float(snipe['amount']) / (10 ** divisibility)) if float(snipe['amount']) != 0 else 'N/A'
+        }
+        for snipe in snipes
+]
 
+    for info in snipe_info:
+        print(rune, info)
+
+async def add_mint_data(rune):
+    global runes_data
+    # Load data from rune_mint_data.json
+    with open('rune_mint_data.json', 'r') as f:
+        mint_data = json.load(f)
+    # Check if the rune exists in the mint data
+    if rune not in runes_data:
+        runes_data[rune] = {}
+    if rune in mint_data:
+        # The rune exists in the mint data
+        # Add the mint data to runes_data
+        runes_data[rune]['supply'] = float(mint_data[rune]['supply'])
+        # Extract the number from the amount data
+        amount = mint_data[rune]['mint_amount']
+        if amount == 'na':
+            runes_data[rune]['mint_amount'] = None
+        else:
+            runes_data[rune]['mint_amount'] = float(amount)
+        # Convert the divisibility data to an integer
+        runes_data[rune]['divisibility'] = int(mint_data[rune]['divisibility'])
+    else:
+        # The rune does not exist in the mint data
+        # Scrape the data from the webpage
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'https://ordinals.com/rune/{rune}') as response:
+                soup = BeautifulSoup(await response.text(), 'html.parser')
+                dl_tag = soup.find('dl')
+                runes_data[rune]['mint_amount'] = 0  # Default value
+                for dt, dd in zip(dl_tag.find_all('dt'), dl_tag.find_all('dd')):
+                    key = dt.text.strip()
+                    value = dd.text.strip()
+                    if key == 'supply':
+                        supply = value.split()[0]
+                        runes_data[rune]['supply'] = float(supply)
+                    elif key == 'amount':
+                        amount = value.split()[0]
+                        runes_data[rune]['mint_amount'] = float(amount)
+                    elif key == 'divisibility':
+                        runes_data[rune]['divisibility'] = int(value)
 
 async def check_price_change():
     global runes_data
+    global coin_data
 
     channel_id = 866304139741888573  # Replace with your channel ID
     channel = await bot.fetch_channel(int(channel_id))
@@ -1153,8 +1340,11 @@ async def check_price_change():
             price_change = current_price - old_price
             change_percentage = price_change / old_price * 100
             if change_percentage > 5:  # Calculate the price change
-                ##message = await secondary_check_price_change(rune)
-                await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} in the last minute.')
+                if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None:
+                    price_per_mint = format_number(current_price * runes_data[rune]['mint_amount'] * coin_data['bitcoin']['current_price'] / 1e8)
+                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {current_price} sats in the last minute. The price per mint is now ${price_per_mint}.')
+                else:
+                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {current_price} sats in the last minute.')
 
 
 

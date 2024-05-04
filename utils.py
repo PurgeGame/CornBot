@@ -55,7 +55,7 @@ def parse_date(input_date):
 
 
 
-def format_number(num, integer=False,bitcoin = False):
+def format_number(num, integer=False,bitcoin = False, vol = False):
     if num is None or not is_number(num):
         return 0
     else:
@@ -68,8 +68,10 @@ def format_number(num, integer=False,bitcoin = False):
             return f'{num/1e6:,.0f} M'
         elif num >= 1e4 and bitcoin == False:
             return f'{num/1000:,.0f}k'
-        elif num >= 1e3:
+        elif num >= 1e3 and vol == False:
             return f'{int(num):,}'
+        elif num >= 1e3:
+            return f'{num/1000:,.0f}k'
         elif num >= 1:
             if num % 1 == 0 or integer==True:
                 return int(num)

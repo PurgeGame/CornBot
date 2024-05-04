@@ -1,6 +1,7 @@
 .env
 myenv/
 *.json
+!rune_mint_data.json
 !coins.json
 !/historical/data_2024-04-26.json
 !favorite_coins_fallback.json
