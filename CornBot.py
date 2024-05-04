@@ -18,11 +18,13 @@ from discord import File
 import glob
 import shutil
 from bs4 import BeautifulSoup
+from dateutil.parser import parse
 
 load_dotenv()
 coin_data = {}
 runes_data = {}
 all_transactions = {}
+triggered_tx_ids = {}
 if os.path.exists('all_transactions.json'):
     with open('all_transactions.json', 'r') as f:
         all_transactions = json.load(f)
@@ -567,8 +569,11 @@ async def parse_rune_data(rune_list):
         rune_list = [rune_list]
 
     for rune in rune_list:
-        if 'divisibility' not in runes_data[rune]:
+        if not runes_data.get(rune):
             await add_mint_data(rune)
+        else:
+            if runes_data[rune].get('divisibility') is None:
+                await add_mint_data(rune)
         new_data = await fetch_rune_data(rune)  # Assuming fetch_rune_data is a function that fetches data for a rune
         coin_id = new_data.get('rune', None)
         symbol = new_data.get('symbol', None)
@@ -583,6 +588,11 @@ async def parse_rune_data(rune_list):
         # Convert the market cap from Bitcoin to dollars
         btc_price_in_usd = coin_data['bitcoin']['current_price']
         market_cap_in_usd = market_cap_in_btc * btc_price_in_usd
+        if not runes_data[rune].get('mint_amount'):
+            mint_amount = 1
+        else:
+            mint_amount = runes_data[rune].get('mint_amount')
+
 
         # Get the current time
         now = datetime.now()
@@ -652,6 +662,7 @@ async def parse_rune_data(rune_list):
             'ath_change_percentage': ath_change_percentage,
             'volume_24h': volume_24h,
             'volume_7d': volume_7d,
+            'mint_amount': mint_amount,
         })
 
     return runes_data
@@ -1154,19 +1165,19 @@ def get_latest_transaction_date(transactions):
 
     return latest_date
 
-def filter_transactions(transactions, kind):
-    return [txn for txn in transactions if txn['kind'] == kind]
+def filter_transactions(transactions, kind,rune):
+    return [txn for txn in transactions if txn['kind'] == kind and txn['rune'] == rune]
 
 
 def snipe_filter(rune, transactions):
     global runes_data
     if 'divisibility' in runes_data[rune]:
-        divisibility = int(runes_data[rune]['divisibility'])
+        divisibility = 10** int(runes_data[rune]['divisibility'])
     else:
         return []
+
     # Get the current price of the rune
     current_price = runes_data.get(rune, {}).get('current_price')
-
 
     # Check if the current price is not None
     if current_price is None:
@@ -1178,12 +1189,18 @@ def snipe_filter(rune, transactions):
 
     # Iterate over the transactions
     for txn in transactions:
+        price = float(txn['listedPrice'])  # price in satoshis
+        amount = float(txn['amount']) / divisibility
+
         # Calculate the price per unit for the transaction
-        price_per_unit = float(txn['listedPrice'])/((float(txn['amount']) / 10**divisibility))
+        price_per_unit = price / amount
+        price_ratio = price_per_unit / current_price
 
         # Check if the price per unit is below the current price
-        if price_per_unit < current_price * 0.95:
+        if price_ratio < 0.95:
             # If it is, add the transaction to the list
+            txn['price_per_unit'] = price_per_unit
+            txn['price_ratio'] = price_ratio
             below_current_price_transactions.append(txn)
 
     # Initialize an empty list to store the transactions where the total value at the new current price is more than $200
@@ -1191,32 +1208,39 @@ def snipe_filter(rune, transactions):
 
     # Iterate over the transactions where the price per unit is below the current price
     for txn in below_current_price_transactions:
-        # Calculate the total value at the new current price
-        total_value = float(txn['listedPrice']) * float(txn['btcUsdPrice']) / 1e8
-        # Check if the total value is more than $200
-        if total_value > 200:
+        price = float(txn['listedPrice'])  # price in satoshis
+        amount = float(txn['amount'])  / divisibility
+
+        # Calculate the total value at the current price
+        current_value = amount * current_price  # What it would be worth at the current price
+        total_value_at_current_price = current_value - price  # The difference in satoshis
+
+        # Check if the total value is more than $100
+        sat_usd_price = float(txn['btcUsdPrice']) / 1e8
+        total_value_at_current_price_usd = total_value_at_current_price * sat_usd_price
+        if total_value_at_current_price_usd > 100:
             # If it is, add the total value to the transaction data
-            total_value = int(total_value)
-            txn['total_value'] = total_value
+            txn['total_value'] = total_value_at_current_price_usd
 
             # Add the transaction to the list
             valuable_transactions.append(txn)
 
-    return valuable_transactions
+            print(f"Snipe found for {rune} with total value of {format_number(total_value_at_current_price_usd)} at price of {format_number(txn['price_per_unit'] * btc_usd_price)}. Transaction ID: {txn['mempoolTxId']}")
 
+    return valuable_transactions
 
 def snipe_check(rune, buys, sold):
     global runes_data
 
     # Create a set of the selling transactions' txIds and mempoolTxIds
-    selling_set = {txn.get('txId', '') for txn in sold}
-    selling_set.update({txn.get('mempoolTxId', '') for txn in sold})
+    selling_set = {txn.get('txId', '') for txn in sold if txn.get('rune', '') == rune}
+    selling_set.update({txn.get('mempoolTxId', '') for txn in sold if txn.get('rune', '') == rune})
 
     # Create a dictionary of the buying transactions' mempoolTxIds
     buying_dict = {}
     for buy in buys:
         mempoolTxId = buy.get('mempoolTxId', '')
-        if mempoolTxId not in buying_dict:
+        if mempoolTxId not in buying_dict and buy.get('rune', '') == rune:
             buying_dict[mempoolTxId] = buy
 
     # Filter the buying transactions to get only the ones that haven't been sold and don't have duplicate mempoolTxIds
@@ -1260,30 +1284,34 @@ async def secondary_check_price_change(rune):
     with open('all_transactions.json', 'w') as f:
         json.dump(all_transactions, f)
 
-        buys = filter_transactions(all_transactions.values(), 'buying_broadcasted')
+        buys = filter_transactions(all_transactions.values(), 'buying_broadcasted',rune)
 
-        sold = filter_transactions(all_transactions.values(),'sent')
+        sold = filter_transactions(all_transactions.values(),'sent',rune)
 
         # listings = filter_transactions(all_transactions.values(),'create_sell_order')
         # cancels = filter_transactions(all_transactions.values(),'order_cancelled')
 
 
         # Create a set of the selling transactions
-
+    
     snipes = snipe_check(rune,buys,sold)
+    
     # Calculate the number of runes and the price per rune for each snipe
     snipe_info = [
         {
+            'rune': rune,
             'txId': snipe['mempoolTxId'],
             'total_value': snipe.get('total_value', 'N/A'),
             'number_of_runes': float(snipe['amount']) / (10 ** divisibility),
-            'price_per_rune': float(snipe['listedPrice']) / (float(snipe['amount']) / (10 ** divisibility)) if float(snipe['amount']) != 0 else 'N/A'
+            'number_of_mints': float(snipe['amount']) / (10 ** divisibility) / runes_data[rune]['mint_amount'] if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None else None,
+            'price_per_rune': float(snipe['listedPrice']) / (float(snipe['amount']) / (10 ** divisibility)),
+            'price per mint': float(snipe['listedPrice']) / (float(snipe['amount']) / (10 ** divisibility)) * runes_data[rune]['mint_amount'] * float(snipe['btcUsdPrice']) / 1e8 if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None else None,
+            'total_price': float(snipe['listedPrice']) * float(snipe['btcUsdPrice']) / 1e8
         }
         for snipe in snipes
 ]
 
-    for info in snipe_info:
-        print(rune, info)
+    return snipe_info
 
 async def add_mint_data(rune):
     global runes_data
@@ -1310,6 +1338,7 @@ async def add_mint_data(rune):
         # Scrape the data from the webpage
         async with aiohttp.ClientSession() as session:
             async with session.get(f'https://ordinals.com/rune/{rune}') as response:
+                print('here')
                 soup = BeautifulSoup(await response.text(), 'html.parser')
                 dl_tag = soup.find('dl')
                 runes_data[rune]['mint_amount'] = 0  # Default value
@@ -1324,6 +1353,40 @@ async def add_mint_data(rune):
                         runes_data[rune]['mint_amount'] = float(amount)
                     elif key == 'divisibility':
                         runes_data[rune]['divisibility'] = int(value)
+
+async def send_snipe_message(snipe):
+    global runes_data
+    channel_id = 866304139741888573  # Replace with your channel ID
+    global triggered_tx_ids
+
+    # Check if the transaction ID is in the dictionary of triggered transaction IDs
+    if snipe['txId'] in triggered_tx_ids:
+        # If it is, return without sending a message
+        return
+
+    # If it's not, add it to the dictionary with the current timestamp
+    triggered_tx_ids[snipe['txId']] = datetime.now()
+
+    channel = await bot.fetch_channel(int(channel_id))
+    await channel.send(
+        f"${format_number(snipe['total_value'])} <:snipe:919674042661892108>    Cost - ${format_number(snipe['total_price'])}.\n"
+        f"{runes_data[snipe['rune']]['symbol']}{format_number(snipe['number_of_mints'] or snipe['number_of_runes'])} {snipe['rune']} at {format_number(snipe['price_per_rune'])} sat -"
+        + (f" ${format_number(snipe['price per mint'])} per mint" if snipe['price per mint'] is not None else "")
+        + f"\n{snipe['txId']} BETA WARNING: DYOR, math may be wrong"
+    )
+
+async def cleanup_old_tx():
+    global triggered_tx_ids
+
+    # Define the threshold for old transactions (e.g., 1 day)
+    threshold = timedelta(hours = 2)
+
+    # Get the current time
+    now = datetime.now()
+
+    # Remove the transactions that are older than the threshold
+    triggered_tx_ids = {tx_id: timestamp for tx_id, timestamp in triggered_tx_ids.items() if now - timestamp <= threshold}
+
 
 async def check_price_change():
     global runes_data
@@ -1340,11 +1403,15 @@ async def check_price_change():
             price_change = current_price - old_price
             change_percentage = price_change / old_price * 100
             if change_percentage > 5:  # Calculate the price change
+                snipes = await secondary_check_price_change(rune)
+                if snipes:
+                    for snipe in snipes:
+                        await send_snipe_message(snipe)
                 if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None:
                     price_per_mint = format_number(current_price * runes_data[rune]['mint_amount'] * coin_data['bitcoin']['current_price'] / 1e8)
-                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {current_price} sats in the last minute. The price per mint is now ${price_per_mint}.')
+                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {format_number(current_price)} sats in the last minute. The price per mint is now ${price_per_mint}.')
                 else:
-                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {current_price} sats in the last minute.')
+                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {format_number(current_price)} sats in the last minute.')
 
 
 
@@ -1371,9 +1438,13 @@ async def on_ready():
     print(f'We have logged in as {bot.user}')
     update_activity.start()  # Start the task as soon as the bot is ready
 
+loop_counter = 0  # Initialize the counter outside the loop
+
 @tasks.loop(minutes = 1)  # Create a task that runs every minute
 async def update_activity():
     global change_btc  # Declare the variable as global so we can modify it
+    global loop_counter  # Declare the counter as global so we can modify it
+
     coins_list, runes_list = get_all_coins_and_runes()
 
     if coins_list is None:
@@ -1389,6 +1460,21 @@ async def update_activity():
     save_historical_data()
     await check_alerts()
     await check_price_change()
+
+    # Increment the counter
+
+
+    # Check if it's the 5th iteration
+    if loop_counter % 3 == 0:
+        loop_counter = 0  # Reset the counter
+        for rune in runes_data:
+            snipes = await secondary_check_price_change(rune)
+            if snipes:
+                for snipe in snipes:
+                    print(snipe)
+                    await send_snipe_message(snipe)
+        await cleanup_old_tx()
+    loop_counter += 1
   
 
     if not gecko:
