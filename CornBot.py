@@ -1171,6 +1171,7 @@ def filter_transactions(transactions, kind,rune):
 
 def snipe_filter(rune, transactions):
     global runes_data
+    global triggered_tx_ids
     if 'divisibility' in runes_data[rune]:
         divisibility = 10** int(runes_data[rune]['divisibility'])
     else:
@@ -1218,14 +1219,16 @@ def snipe_filter(rune, transactions):
         # Check if the total value is more than $100
         sat_usd_price = float(txn['btcUsdPrice']) / 1e8
         total_value_at_current_price_usd = total_value_at_current_price * sat_usd_price
-        if total_value_at_current_price_usd > 100:
+        if total_value_at_current_price_usd > 200:
             # If it is, add the total value to the transaction data
             txn['total_value'] = total_value_at_current_price_usd
 
             # Add the transaction to the list
             valuable_transactions.append(txn)
+            if txn['mempoolTxId'] in triggered_tx_ids:
+                continue
 
-            print(f"Snipe found for {rune} with total value of {format_number(total_value_at_current_price_usd)} at price of {format_number(txn['price_per_unit'] * btc_usd_price)}. Transaction ID: {txn['mempoolTxId']}")
+            print(f"Snipe found for {rune} with total value of {format_number(total_value_at_current_price_usd)} at price of {format_number(txn['price_per_unit'] * sat_usd_price)}. Transaction ID: {txn['mempoolTxId']}")
 
     return valuable_transactions
 
@@ -1300,7 +1303,8 @@ async def secondary_check_price_change(rune):
     snipe_info = [
         {
             'rune': rune,
-            'txId': snipe['mempoolTxId'],
+            'txId': snipe['txId'],
+            'mempoolTxId': snipe['mempoolTxId'],
             'total_value': snipe.get('total_value', 'N/A'),
             'number_of_runes': float(snipe['amount']) / (10 ** divisibility),
             'number_of_mints': float(snipe['amount']) / (10 ** divisibility) / runes_data[rune]['mint_amount'] if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None else None,
@@ -1338,7 +1342,6 @@ async def add_mint_data(rune):
         # Scrape the data from the webpage
         async with aiohttp.ClientSession() as session:
             async with session.get(f'https://ordinals.com/rune/{rune}') as response:
-                print('here')
                 soup = BeautifulSoup(await response.text(), 'html.parser')
                 dl_tag = soup.find('dl')
                 runes_data[rune]['mint_amount'] = 0  # Default value
@@ -1371,8 +1374,8 @@ async def send_snipe_message(snipe):
     await channel.send(
         f"${format_number(snipe['total_value'])} <:snipe:919674042661892108>    Cost - ${format_number(snipe['total_price'])}.\n"
         f"{runes_data[snipe['rune']]['symbol']}{format_number(snipe['number_of_mints'] or snipe['number_of_runes'])} {snipe['rune']} at {format_number(snipe['price_per_rune'])} sat -"
-        + (f" ${format_number(snipe['price per mint'])} per mint" if snipe['price per mint'] is not None else "")
-        + f"\n{snipe['txId']} BETA WARNING: DYOR, math may be wrong"
+        + (f" ${format_number(snipe['price per mint'])} per mint - BETA WARNING: DYOR, math may be wrong" if snipe['price per mint'] is not None else "BETA WARNING: DYOR, math may be wrong")
+        + f"\n{snipe['txId']}. or maybe {snipe['mempoolTxId']}."
     )
 
 async def cleanup_old_tx():
@@ -1388,30 +1391,55 @@ async def cleanup_old_tx():
     triggered_tx_ids = {tx_id: timestamp for tx_id, timestamp in triggered_tx_ids.items() if now - timestamp <= threshold}
 
 
+
+
+# Add a dictionary to store the last alert time for each rune
+last_alert_times = {}
+
 async def check_price_change():
     global runes_data
     global coin_data
-
-    channel_id = 866304139741888573  # Replace with your channel ID
-    channel = await bot.fetch_channel(int(channel_id))
+    global last_alert_times
 
     for rune, data in runes_data.items():
         current_price = data['price_list'][-1]  # Fetch the most recent price
-        old_price = data['price_list'][-2] if len(data['price_list']) >= 2 else None  # Get the price from 55 minutes ago
+        old_price_1m = data['price_list'][-2] if len(data['price_list']) >= 2 else None  # Get the price from 1 minute ago
+        old_price_5m = data['price_list'][-6] if len(data['price_list']) >= 6 else None  # Get the price from 5 minutes ago
 
-        if old_price is not None and old_price != 0:
-            price_change = current_price - old_price
-            change_percentage = price_change / old_price * 100
-            if change_percentage > 5:  # Calculate the price change
-                snipes = await secondary_check_price_change(rune)
-                if snipes:
-                    for snipe in snipes:
-                        await send_snipe_message(snipe)
-                if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None:
-                    price_per_mint = format_number(current_price * runes_data[rune]['mint_amount'] * coin_data['bitcoin']['current_price'] / 1e8)
-                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {format_number(current_price)} sats in the last minute. The price per mint is now ${price_per_mint}.')
-                else:
-                    await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {format_number(current_price)} sats in the last minute.')
+        alert_5m = False  # Flag to check if 5-minute alert is sent
+
+        # Check for 10% increase over the last 5 minutes
+        if old_price_5m is not None and old_price_5m != 0:
+            price_change_5m = current_price - old_price_5m
+            change_percentage_5m = price_change_5m / old_price_5m * 100
+
+            last_alert_time = last_alert_times.get(rune)
+            if change_percentage_5m > 10 and (last_alert_time is None or datetime.now() - last_alert_time > timedelta(minutes=5)):
+                await send_price_change_alert(rune, change_percentage_5m, current_price, '5m')
+                last_alert_times[rune] = datetime.now()
+                alert_5m = True
+
+        # Check for 5% increase over the last minute
+        if not alert_5m and old_price_1m is not None and old_price_1m != 0:
+            price_change_1m = current_price - old_price_1m
+            change_percentage_1m = price_change_1m / old_price_1m * 100
+
+            if change_percentage_1m > 5:
+                await send_price_change_alert(rune, change_percentage_1m, current_price, '1m')
+
+async def send_price_change_alert(rune, change_percentage, current_price, time_period):
+    channel_id = 866304139741888573  # Replace with your channel ID
+    channel = await bot.fetch_channel(int(channel_id))
+
+    snipes = await secondary_check_price_change(rune)
+    if snipes:
+        for snipe in snipes:
+            await send_snipe_message(snipe)
+    if 'mint_amount' in runes_data[rune] and runes_data[rune]['mint_amount'] is not None:
+        price_per_mint = format_number(current_price * runes_data[rune]['mint_amount'] * coin_data['bitcoin']['current_price'] / 1e8)
+        await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {format_number(current_price)} sats in the last {time_period}. The price per mint is now ${price_per_mint}.')
+    else:
+        await channel.send(f'The price of {rune} has increased by {format_change(change_percentage)} to {format_number(current_price)} sats in the last {time_period}.')
 
 
 
@@ -1471,7 +1499,6 @@ async def update_activity():
             snipes = await secondary_check_price_change(rune)
             if snipes:
                 for snipe in snipes:
-                    print(snipe)
                     await send_snipe_message(snipe)
         await cleanup_old_tx()
     loop_counter += 1
