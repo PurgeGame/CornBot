@@ -26,8 +26,11 @@ runes_data = {}
 all_transactions = {}
 triggered_tx_ids = {}
 if os.path.exists('all_transactions.json'):
-    with open('all_transactions.json', 'r') as f:
-        all_transactions = json.load(f)
+    try:
+        with open('all_transactions.json', 'r') as f:
+            all_transactions = json.load(f)
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON file")
 
 def check_and_copy_files(file_paths, fallback_paths):
     for file_path, fallback_path in zip(file_paths, fallback_paths):
@@ -243,7 +246,7 @@ async def create_table_coins(coins_data, display_id, include_historical=False):
 
 async def create_table_runes(runes,user_id):
     global coin_data
-    field_names = [ 'Name', 'Price', 'Δ 24h', 'M Cap', 'Vol', 'Mints', 'Value', 'S']
+    field_names = [ 'Name', 'Price', 'Δ 24h', 'M Cap', 'Vol', 'Mints', '$/Mint','Value', 'S']
     table = PrettyTable()
     table.field_names = field_names
     table.align = 'r'  # right-align data
@@ -280,9 +283,11 @@ async def create_table_runes(runes,user_id):
             mints_owned = quantity_owned
 
         try:
+            mint_price = format_number_with_symbol(quantity_owned * unformatted_price * sat_price / mints_owned,'USD',True) if amount != 'N/A' and mints_owned != 0 else 'N/A'
             value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
         except ValueError:
             value = 'N/A'
+            mint_price = 'N/A'
 
         if volume_24h == 'N/A' or rune_data.get('volume_24h', 0) < 1000000:
             if volume_7d == 'N/A' or rune_data.get('volume_7d', 0) < 3000000:
@@ -312,7 +317,7 @@ async def create_table_runes(runes,user_id):
         else:
             volume_24h = '<1k'
         quantity_owned = format_number(quantity_owned) if quantity_owned is not None else '0'
-        row_data = [name, price, change_24h, market_cap, volume_24h, quantity_owned, value,symbol]
+        row_data = [name, price, change_24h, market_cap, volume_24h, quantity_owned, mint_price, value,symbol]
         rows.append(row_data)  # Add the row data to the list
 
     # Sort the rows by value (assuming value is a float)
