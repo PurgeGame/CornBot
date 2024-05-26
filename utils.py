@@ -72,6 +72,12 @@ def format_number(num, integer=False,bitcoin = False, vol = False):
             return f'{int(num):,}'
         elif num >= 1e3:
             return f'{num/1000:,.0f}k'
+        elif num >= 100:
+            return f'{num:,.0f}'
+        elif num >= 10:
+            if num % 1 == 0 or integer==True:
+                return int(num)
+            return f'{num:,.1f}'
         elif num >= 1:
             if num % 1 == 0 or integer==True:
                 return int(num)

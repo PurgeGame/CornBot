@@ -274,16 +274,17 @@ async def create_table_runes(runes,user_id):
         volume_24h_calc = int(rune_data['volume_24h']) * sat_price if rune_data['volume_24h'] else 'N/A'
         
         amount = rune_data.get('mint_amount', 'N/A')
+        amount = float(str(amount).replace(',', '')) if amount != 'N/A' else 'N/A'
         if amount != 'N/A':
             try:
-                mints_owned = quantity_owned / float(str(amount).replace(',', ''))
+                mints_owned = quantity_owned / amount
             except ValueError:
                 mints_owned = quantity_owned
         else:  
             mints_owned = quantity_owned
 
         try:
-            mint_price = format_number_with_symbol(quantity_owned * unformatted_price * sat_price / mints_owned,'USD',True) if amount != 'N/A' and mints_owned != 0 else 'N/A'
+            mint_price = format_number_with_symbol( unformatted_price * sat_price * amount,'USD') if amount != 'N/A' and mints_owned != 0 else 'N/A'
             value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
         except ValueError:
             value = 'N/A'
@@ -306,7 +307,7 @@ async def create_table_runes(runes,user_id):
 
         if amount != 'N/A':
             try:
-                mints_owned = quantity_owned / float(str(amount).replace(',', ''))
+                mints_owned = quantity_owned / amount
             except ValueError:
                 mints_owned = quantity_owned
         if mints_owned != 'N/A':
@@ -396,8 +397,8 @@ async def get_my_runes(address,rune):
 
 @bot.slash_command(name="runes", description="Show your runes")
 async def runes(ctx, update_quantity: Optional[bool] = False, address: Optional[str] = None,):
-    global runes_data
     await ctx.defer()
+    global runes_data
     user_id = str(ctx.author.id)
     if address is None:
         if not os.path.exists('favorite_runes.json'):
