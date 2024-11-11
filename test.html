@@ -1,0 +1,3798 @@
+<html><head><style type="text/css">.turbo-progress-bar {
+  position: fixed;
+  display: block;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: #0076ff;
+  z-index: 2147483647;
+  transition:
+    width 300ms ease-out,
+    opacity 150ms 150ms ease-in;
+  transform: translate3d(0, 0, 0);
+}
+</style>
+    <title>MagicPool: Real-time Mempool insights</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+
+    <meta name="csrf-param" content="authenticity_token">
+<meta name="csrf-token" content="jEIGVttJkgYjeJX-qixG9hhZgB5_nAq5dZPLaul3g3pjLRnE3dLLDIhkmxU7UCj4Pvi9pZ1dtJrt6QwlyL8lBA">
+    
+    <link rel="stylesheet" href="/assets/tailwind-7dadab976e3b5bf2bfc4baf672e3afb84d3c70c2b062019feae4986a5148f535.css" data-turbo-track="reload">
+<link rel="stylesheet" href="/assets/inter-font-8c3e82affb176f4bca9616b838d906343d1251adc8408efe02cf2b1e4fcf2bc4.css" data-turbo-track="reload">
+
+    <link rel="stylesheet" href="/assets/application-1037f518b54a442d4e2724f514634965403dfa9a67a89b6179b27623d88a7515.css" data-turbo-track="reload">
+    <script src="/assets/application-8c6d0ddf1f914adcd43ca10a7631c181b903872ff64ee6cd49c5d621a79648cf.js" data-turbo-track="reload" type="module"></script>
+  <script src="chrome-extension://idnnbdplmphpflfnlkomgpfbpcgelopg/inpage.js" id="xverse-wallet-provider" data-is-priority="true"></script></head>
+
+  <body class="antialiased bg-gray-800 text-body font-body overscroll-none">
+    <section class="sticky" style="top: 0; z-index: 10;">
+  <nav class="py-1 bg-gray-800 mb-2" style="border-bottom: 1px solid rgb(35 43 58/var(--tw-bg-opacity))">
+    <div class="container mx-auto flex items-center justify-between">
+      <div class="xl:w-auto px-4 xl:mr-12">
+        <div class="flex items-center justify-left p-2">
+          <a href="/"><img style="width: 420px;" class="mx-0" src="/assets/banner-99b90657d9a629309add328676a57d14c337f546b2501996187b421d0427bf88.webp"></a>
+        </div>
+      </div>
+
+      <div class="xl:block w-full md:w-auto">
+        <div class="ml-auto">
+          <ul class="flex items-center">
+            <li class="mr-2 md:mr-10"><a class="inline-block font-semibold text-purple-400 hover:underline" href="/">RUNES</a></li>
+            <li class="mr-2 md:mr-10"><a class="inline-block font-semibold text-purple-400 hover:underline" href="/ordinals">ORDINALS</a></li>
+            <li class="hidden md:block" style="margin-right: 2.0rem;">
+              <a class="inline-block font-semibold text-purple-400 hover:underline" href="https://runeblaster.io" target="_blank">
+                ▣ MINT ▣
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+</section>
+
+
+    <div class="container px-4 bg-gray-800 mx-auto">
+      <section class="py-3">
+  <div class="container px-4 mx-auto" data-controller="runes">
+    <div class="pt-6 pb-8 bg-gray-500 rounded">
+      <div class="px-6">
+        <div class="flex items-center justify-between mb-6">
+          <div class="text-lg text-gray-100 font-semibold flex-1">
+            Rune trades in Mempool
+          </div>
+          <div class="flex justify-between items-center p-2">
+            <div class="text-sm">
+              <span class="text-green-400" data-runes-target="mempoolTXCount">714 TX</span>
+              ┊
+              <span class="text-green-400" data-runes-target="mempoolVolume">2.0953 BTC</span>
+            </div>
+          </div>
+          <div class="ripple"></div>
+        </div>
+
+        <div class="w-full mt-6 pb-6" style="overflow-x: scroll;">
+
+          <table class="w-full min-w-max text-sm">
+            <thead style="position: sticky; top: 0;">
+              <tr class="text-left">
+                <th class="p-0">
+                  <div class="py-3 px-3 bg-gray-800 rounded-tl">
+                    <span class="text-xs text-gray-300 font-semibold">RUNE</span>
+                  </div>
+                </th>
+                <th class="p-0">
+                  <div class="py-3 px-2 bg-gray-800 text-right">
+                    <span class="text-xs text-gray-300 font-semibold">MEMPOOL</span>
+                  </div>
+                </th>
+                <th class="p-0">
+                  <div class="py-3 px-2 bg-gray-800 text-right">
+                    <span class="text-xs text-gray-300 font-semibold">FLOOR</span>
+                  </div>
+                </th>
+                <th class="p-0">
+                  <div class="py-3 px-2 bg-gray-800 text-right">
+                    <span class="text-xs text-gray-300 font-semibold">VOLUME</span>
+                  </div>
+                </th>
+                <th class="p-0 whitespace-nowrap overflow-hidden overflow-ellipsis max-w-xs text-right">
+                  <div class="py-3 px-2 bg-gray-800 rounded-tr">
+                    <span class="text-xs text-gray-300 font-semibold">PENDING #</span>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody class="overflow-y-auto" data-runes-target="container">
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/WADDLE•WADDLE•PENGU">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/ec00689a765dd06352fccd83dd60e81212741e1305af197b6ff6a035055684dbi0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/WADDLE•WADDLE•PENGU" class="text-purple-400">WADDLE•WADDLE•PENGU</a>
+                      <div class="text-gray-300">RUNE #2962</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">24.8548 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0175</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      24.9 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0176</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.3317 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$23,390.4857</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  28
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/WANKO•MANKO•RUNES">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/ed99434732f00b5dc90043f0100863485b05e38d5323cd08b1dbdda55e7e740di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/WANKO•MANKO•RUNES" class="text-purple-400">WANKO•MANKO•RUNES</a>
+                      <div class="text-gray-300">RUNE #899</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">349.0546 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.2461</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      370 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.2609</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.2658 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$18,740.9101</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  12
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/DOG•GO•TO•THE•MOON">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/e79134080a83fe3e0e06ed6990c5a9b63b362313341745707a2bff7d788a1375i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/DOG•GO•TO•THE•MOON" class="text-purple-400">DOG•GO•TO•THE•MOON</a>
+                      <div class="text-gray-300">RUNE #3</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">12.9389 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0091</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      13.1199 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0093</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.2439 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$17,195.4862</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  43
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SATOSHI•NAKAMOTO">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/fa5f747dd1eca8e0ba246d53a39b1c7eb0cc1e340c3cc78258d39bb8fe9ac9edi0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SATOSHI•NAKAMOTO" class="text-purple-400">SATOSHI•NAKAMOTO</a>
+                      <div class="text-gray-300">RUNE #6</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">3,309.92 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.3337</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      3,299 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.326</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.1715 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$12,089.3749</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  9
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/LOBO•THE•WOLF•PUP">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/cc980c6f8fc8d985e8e2c2bfcdb8120a630fa76ba37fd388d67af7e116827a4di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/LOBO•THE•WOLF•PUP" class="text-purple-400">LOBO•THE•WOLF•PUP</a>
+                      <div class="text-gray-300">RUNE #9</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">4.15 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0029</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      4.25 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.1405 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$9,903.0762</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  18
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SGN•SHO•GA•NAI•SGN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/2e7d4d9daedade846c8b64eed209660129402b130bf14f6ba4bdf84adfbdb247i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SGN•SHO•GA•NAI•SGN" class="text-purple-400">SGN•SHO•GA•NAI•SGN</a>
+                      <div class="text-gray-300">RUNE #72211</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.83 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0006</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.869 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0006</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.1088 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$7,668.4718</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  11
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BILLION•DOLLAR•CAT">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/c5e59f3f8024c80fe7f8685c1d920f66cee5e9d4a423f3f293d844b291381ba5i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BILLION•DOLLAR•CAT" class="text-purple-400">BILLION•DOLLAR•CAT</a>
+                      <div class="text-gray-300">RUNE #72029</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">9.5039 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0067</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      9.69 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0068</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0697 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$4,914.584</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  14
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/NICOLAS•PI•RUNES">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>P</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/NICOLAS•PI•RUNES" class="text-purple-400">NICOLAS•PI•RUNES</a>
+                      <div class="text-gray-300">RUNE #6928</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.87 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0006</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.8 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0006</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0596 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$4,200.7986</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  13
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/COOK•THE•MEMPOOL">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>♨</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/COOK•THE•MEMPOOL" class="text-purple-400">COOK•THE•MEMPOOL</a>
+                      <div class="text-gray-300">RUNE #37</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">11.9298 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0084</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      13.37 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0094</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0576 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$4,064.4606</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  13
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SAIKO•HAMSTER">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/f9cea700cdf29714e248fc363bbfa25c657e1174c28855ed3268916a686de5a3i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SAIKO•HAMSTER" class="text-purple-400">SAIKO•HAMSTER</a>
+                      <div class="text-gray-300">RUNE #72706</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">60.1473 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0424</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      61 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.043</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0417 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,938.1416</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  18
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/DECENTRALIZED">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://media.cdn.magiceden.dev/decentralised.png" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/DECENTRALIZED" class="text-purple-400">DECENTRALIZED</a>
+                      <div class="text-gray-300">RUNE #2</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">3.9903 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0028</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      4.2 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0415 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,925.0506</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  4
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/COWS•TO•THE•MOON">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/b64503aef59f0abcf51083764c6d7ce743d3b4f548b62bd15355ae8b61877f59i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/COWS•TO•THE•MOON" class="text-purple-400">COWS•TO•THE•MOON</a>
+                      <div class="text-gray-300">RUNE #9340</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.005 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0067 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.038 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,679.1955</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  8
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/GOB•IS•GOB•IS•GOB">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/95bfa45afda983f3d6b9893a7e9200c12c4015bcdaffc3b933d508f9e47b7483i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/GOB•IS•GOB•IS•GOB" class="text-purple-400">GOB•IS•GOB•IS•GOB</a>
+                      <div class="text-gray-300">RUNE #690</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">13.0546 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0092</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      14.1 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0099</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0358 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,521.6434</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  25
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/ODIN•GOD•OF•RUNES">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/0a2b45dd938671a2a1193a4d002b75946940925bdf90ed169d17652e2709d7e5i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/ODIN•GOD•OF•RUNES" class="text-purple-400">ODIN•GOD•OF•RUNES</a>
+                      <div class="text-gray-300">RUNE #10986</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.3951 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.395 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0353 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,491.4523</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/CHEESED•TO•MEET•YOU">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/4918e5b5095d0d088de761f1820071ca1e1e7f5f81030a2a1c1568eb1d924691i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/CHEESED•TO•MEET•YOU" class="text-purple-400">CHEESED•TO•MEET•YOU</a>
+                      <div class="text-gray-300">RUNE #72822</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">7.9396 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0056</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      9.45 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0067</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0346 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,442.4809</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  30
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/MEME•ECONOMICS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>$</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/MEME•ECONOMICS" class="text-purple-400">MEME•ECONOMICS</a>
+                      <div class="text-gray-300">RUNE #7</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">385.3033 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.2717</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      385 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.2715</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0341 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,402.6113</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  8
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/DOGS•DAO•MEMECOIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/4af72eb4c4263ebef8452601fbbb781878bf991a0596c24d4a2c434da5e2c3e6i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/DOGS•DAO•MEMECOIN" class="text-purple-400">DOGS•DAO•MEMECOIN</a>
+                      <div class="text-gray-300">RUNE #72032</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.0016 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0019 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0304 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2,144.7404</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  39
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/JOKER•RUNES•COIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>🤡</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/JOKER•RUNES•COIN" class="text-purple-400">JOKER•RUNES•COIN</a>
+                      <div class="text-gray-300">RUNE #69632</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.1 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.14 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0283 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,992.4058</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  32
+                </div>
+              </td>
+            </tr>
+          
+
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/Z•Z•Z•Z•Z•FEHU•Z•Z•Z•Z•Z">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69ei0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/Z•Z•Z•Z•Z•FEHU•Z•Z•Z•Z•Z" class="text-purple-400">Z•Z•Z•Z•Z•FEHU•Z•Z•Z•Z•Z</a>
+                      <div class="text-gray-300">RUNE #1</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">35,000 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$24.6775</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      34,900 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$24.6069</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0221 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,559.9913</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  21
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/REX•BLOCKCHAIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://bafybeidnoibrzykara2haekvpib7zy5rphunr4iqa533k3uiey4b7l2flu.ipfs.w3s.link/Rex%20logo%20lrg2.png" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/REX•BLOCKCHAIN" class="text-purple-400">REX•BLOCKCHAIN</a>
+                      <div class="text-gray-300">RUNE #987</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">133.0871 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0938</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      133 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0938</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0202 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,426.3453</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/APEROL•SPRITZ•ENJOYOORS•CLUB">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/08994e85b8300acea29f7771a778bf5f167a5eed79505eaf61a04b9ce6e6afb3i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/APEROL•SPRITZ•ENJOYOORS•CLUB" class="text-purple-400">APEROL•SPRITZ•ENJOYOORS•CLUB</a>
+                      <div class="text-gray-300">RUNE #3524</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.0209 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.021 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0183 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,292.8467</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  15
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/MIKEHAL•SAILOR">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/6b833e4d85f39691cc3eeaca634619a58436dbfdb25e35f2641d70cc63fef8b4i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/MIKEHAL•SAILOR" class="text-purple-400">MIKEHAL•SAILOR</a>
+                      <div class="text-gray-300">RUNE #3152</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">124.1092 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0875</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      125 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0881</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0175 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,236.1555</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/CATS•IN•THE•SATS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/b9c7c1b564f3794e571cac4d1fcfdcf07d9afa0b3e01d747d48e7033a570a13ei0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/CATS•IN•THE•SATS" class="text-purple-400">CATS•IN•THE•SATS</a>
+                      <div class="text-gray-300">RUNE #67527</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">1,252.91 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.8834</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      1,252 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.8827</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0147 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,037.684</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/NON•STOP•NYAN•CAT">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/13a40266bcc3d65a21e2dcf2f55c4863c2984ac72a615e5e23af0b30ba845b47i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/NON•STOP•NYAN•CAT" class="text-purple-400">NON•STOP•NYAN•CAT</a>
+                      <div class="text-gray-300">RUNE #256</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0147 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,034.8834</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  21
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BAMK•OF•NAKAMOTO•DOLLAR">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/b21c75623559da50930fa51079599c97fc91e8151226e5225ce152f9e7096dfei0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BAMK•OF•NAKAMOTO•DOLLAR" class="text-purple-400">BAMK•OF•NAKAMOTO•DOLLAR</a>
+                      <div class="text-gray-300">RUNE #5220</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">5.5475 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0039</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      5.54 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0039</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0144 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,014.8904</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  6
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/NUSD•NUSD•NUSD•NUSD">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/3bd8ae41f7590e577794d3ef8b65b1d1a6473b33a4c397d0473e5f3da582e0ffi0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/NUSD•NUSD•NUSD•NUSD" class="text-purple-400">NUSD•NUSD•NUSD•NUSD</a>
+                      <div class="text-gray-300">RUNE #70930</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">1,437.092 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1.0133</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      2,850 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.0094</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0144 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1,013.2505</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/RSIC•GENESIS•RUNE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/7b66f3ca78ae7a5f7d787f8ede379f8d1cd380bda75363c1f5c9dcfcceec31f5i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/RSIC•GENESIS•RUNE" class="text-purple-400">RSIC•GENESIS•RUNE</a>
+                      <div class="text-gray-300">RUNE #8</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">16 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0113</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      18.8799 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0133</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.013 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$918.4601</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  16
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/GAMESTOP•CORPORATION">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/8a755be1469e87ef7e92d4d58d5344470036f53466247bb53ad15754fa2054c1i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/GAMESTOP•CORPORATION" class="text-purple-400">GAMESTOP•CORPORATION</a>
+                      <div class="text-gray-300">RUNE #3813</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.3773 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.43 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.012 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$846.4041</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/FAKE•INTERNET•MONEY">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/350d30c70d77bbc1666bf24e3895f25fa0bd8f25a395bee10182dcbf9917e6c0i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/FAKE•INTERNET•MONEY" class="text-purple-400">FAKE•INTERNET•MONEY</a>
+                      <div class="text-gray-300">RUNE #64299</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">4.305 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      4.28 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0119 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$839.3132</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  5
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BITCOIN•PEPE•MATRIX">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/6ea0f940a1386cbb146e134933ca3533c0759101a46744d0b207a283f5f57b23i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BITCOIN•PEPE•MATRIX" class="text-purple-400">BITCOIN•PEPE•MATRIX</a>
+                      <div class="text-gray-300">RUNE #4241</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.5803 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0004</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.459 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0003</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0116 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$818.2662</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/RUNESCAPE•GOLD">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/151541093d39c8871a43fbb0c688fd8c562b31c6a9e47fb070dbeee6730a4d08i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/RUNESCAPE•GOLD" class="text-purple-400">RUNESCAPE•GOLD</a>
+                      <div class="text-gray-300">RUNE #276</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.5031 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0004</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.229 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0002</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0101 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$709.4302</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  4
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/THE•JOSEPH•BIDEN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/8337113043f815e7503df00c1bb7afa4160437935760983c4e805b3e46a8dfcci0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/THE•JOSEPH•BIDEN" class="text-purple-400">THE•JOSEPH•BIDEN</a>
+                      <div class="text-gray-300">RUNE #67709</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">15,568.25 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$10.9767</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      16,000 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$11.2811</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0091 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$643.5117</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/MEMPOOL•PUPPET">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/3cbc17fd8910fb84c5a4671b874079ad57fe7aac6596dc06c0b05905c5b145eei0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/MEMPOOL•PUPPET" class="text-purple-400">MEMPOOL•PUPPET</a>
+                      <div class="text-gray-300">RUNE #261</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">2.5 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0018</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      1.25 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0009</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.009 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$636.2552</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  5
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/THE•OFFICIAL•BOZO">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://bafybeibausobadhd4ycluu7c4eq3lflxewgk6ehuasfip5hhcwz6tdg7hu.ipfs.w3s.link/Try_Magic_Grab_1.png" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/THE•OFFICIAL•BOZO" class="text-purple-400">THE•OFFICIAL•BOZO</a>
+                      <div class="text-gray-300">RUNE #121</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">3.3022 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0023</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      3.25 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0023</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0083 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$582.067</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BONES•OF•BITDOG">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/3af055686edba8e9df1645243003e23981ed5ee3b2ac92188fcddcd59028c531i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BONES•OF•BITDOG" class="text-purple-400">BONES•OF•BITDOG</a>
+                      <div class="text-gray-300">RUNE #1125</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">5.118 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0036</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      5.1 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0036</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0076 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$532.9067</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/PUPS•WORLD•PEACE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://bafkreia63ahvtiz7eolm4upjh4i3u4w6io6amuhzl7wxopk6afaqi44z2q.ipfs.nftstorage.link/" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/PUPS•WORLD•PEACE" class="text-purple-400">PUPS•WORLD•PEACE</a>
+                      <div class="text-gray-300">RUNE #13</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">323.273 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.2279</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      318.5 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.2246</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0066 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$463.2959</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SSSSS•BTC•SSSSS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>𓋡</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SSSSS•BTC•SSSSS" class="text-purple-400">SSSSS•BTC•SSSSS</a>
+                      <div class="text-gray-300">RUNE #6606</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">3.721 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0026</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      4.8 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0034</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0055 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$387.3499</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/RUNE•ALPHA•COOK">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/f9de57f24d363f4384c848ab3cafcdb751c417ac2b106442c9d91c9487904b95i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/RUNE•ALPHA•COOK" class="text-purple-400">RUNE•ALPHA•COOK</a>
+                      <div class="text-gray-300">RUNE #141</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">26 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0183</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      25 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0176</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0052 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$366.6364</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/UNGOVERNABLE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/34117b86db5eea126ec67b2c9ebc39443d110b558436c3f6c757203c900547a0i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/UNGOVERNABLE" class="text-purple-400">UNGOVERNABLE</a>
+                      <div class="text-gray-300">RUNE #71350</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.0453 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.055 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$354.2892</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/HOT•BITCOIN•SUMMER">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>😈</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/HOT•BITCOIN•SUMMER" class="text-purple-400">HOT•BITCOIN•SUMMER</a>
+                      <div class="text-gray-300">RUNE #72739</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">1.5237 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0011</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      1.4 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0045 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$314.4556</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/THE•ROARING•KITTY">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>🙀</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/THE•ROARING•KITTY" class="text-purple-400">THE•ROARING•KITTY</a>
+                      <div class="text-gray-300">RUNE #68661</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">1.7022 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0012</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      2 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0014</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0042 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$292.848</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/ALPACA•WIF•SOCKS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/4be2e2eaef12a618ed48e581769e895f191695eba1fc2e90b6f7cb7a87fc1561i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/ALPACA•WIF•SOCKS" class="text-purple-400">ALPACA•WIF•SOCKS</a>
+                      <div class="text-gray-300">RUNE #72667</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">4.4248 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0031</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      3.58 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0025</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0034 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$236.4903</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/HOOKED•ON•ROONIES">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>💊</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/HOOKED•ON•ROONIES" class="text-purple-400">HOOKED•ON•ROONIES</a>
+                      <div class="text-gray-300">RUNE #1035</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.099 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0988 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0029 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$205.824</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/GARY•GENSLER•COIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>$</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/GARY•GENSLER•COIN" class="text-purple-400">GARY•GENSLER•COIN</a>
+                      <div class="text-gray-300">RUNE #666</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">12.0228 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0085</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      5.2 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0037</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0029 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$203.4451</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/RARE•PUPS•PUPCOIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/3512974a63585ebe7a14d1701c2fb356e8dcf897ac537513e19524dda841e166i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/RARE•PUPS•PUPCOIN" class="text-purple-400">RARE•PUPS•PUPCOIN</a>
+                      <div class="text-gray-300">RUNE #1260</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">250,546 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$176.6525</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      280,000 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$197.4196</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0025 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$176.6525</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/ARTIFICIAL•INTELLIGENCE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/6f9e647386c0b9330675cf05f3ce50788710f7efeb552ed06ab54663d6b5b9d7i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/ARTIFICIAL•INTELLIGENCE" class="text-purple-400">ARTIFICIAL•INTELLIGENCE</a>
+                      <div class="text-gray-300">RUNE #83</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">5.4844 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0039</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      5.25 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0037</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0021 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$146.9408</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BITX•RUNES•DEFI">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>ᛒ</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BITX•RUNES•DEFI" class="text-purple-400">BITX•RUNES•DEFI</a>
+                      <div class="text-gray-300">RUNE #1042</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">10.078 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0071</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      10 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0071</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0021 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$146.4346</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/EPIC•EPIC•EPIC•EPIC">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://renderer.magiceden.dev/v2/render?id=7d0a2dd897222913d58fc957b0429526117a0a61c964642fe93b077f328ccec1i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/EPIC•EPIC•EPIC•EPIC" class="text-purple-400">EPIC•EPIC•EPIC•EPIC</a>
+                      <div class="text-gray-300">RUNE #66429</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">100.092 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0706</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      102.39 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0722</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0021 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$144.6338</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  4
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/DOGS•GO•TO•THE•SUN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/f18ebbff46f6214832c86ef224b17cb38d5ed4cb2225e4a5744aa2624c23f40di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/DOGS•GO•TO•THE•SUN" class="text-purple-400">DOGS•GO•TO•THE•SUN</a>
+                      <div class="text-gray-300">RUNE #72596</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.0001 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0001 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.002 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$143.431</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  4
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/HONEY•BADGER•COIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>🦡</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/HONEY•BADGER•COIN" class="text-purple-400">HONEY•BADGER•COIN</a>
+                      <div class="text-gray-300">RUNE #1023</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0019 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$130.8878</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/THE•DONALD•TRUMP">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://bafybeih5ljnfvdgvbsa3tzjuoyvjljn7ydaagjwet3hagmkszw22e44phi.ipfs.nftstorage.link/" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/THE•DONALD•TRUMP" class="text-purple-400">THE•DONALD•TRUMP</a>
+                      <div class="text-gray-300">RUNE #294</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">18.2184 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0128</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      17.9 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0126</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0018 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$129.5101</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  4
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/THE•XI•JINPING">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/01e703d6d3f83cf412b4bc5d05f1ee2a2bb0c8ef7b97f19302fe49c736a4e4f0i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/THE•XI•JINPING" class="text-purple-400">THE•XI•JINPING</a>
+                      <div class="text-gray-300">RUNE #71041</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">5.1092 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0036</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      5.5 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0039</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0016 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$115.7288</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/THE•KIM•JONG•RUNE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/82c6ce72a4ee32b2d7ca629ec951ec5a3096d03e96dafa666751019a5ee55e3bi0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/THE•KIM•JONG•RUNE" class="text-purple-400">THE•KIM•JONG•RUNE</a>
+                      <div class="text-gray-300">RUNE #71027</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">6.8228 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0048</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      6.4851 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0046</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0016 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$115.4524</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SILK•ROAD•PIRATES">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/7951b6349f0bb04941bb44ca8bc03aa4f059adece42dcb5afbdd66abab54622di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SILK•ROAD•PIRATES" class="text-purple-400">SILK•ROAD•PIRATES</a>
+                      <div class="text-gray-300">RUNE #71190</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">9.2341 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0065</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      9.5 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0067</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0015 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$104.1713</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SATOSHI•RUNE•TITAN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>▣</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SATOSHI•RUNE•TITAN" class="text-purple-400">SATOSHI•RUNE•TITAN</a>
+                      <div class="text-gray-300">RUNE #2578</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">4,250 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.9965</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      4,150 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.926</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0014 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$96.3379</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BULLX•BULLX•BULLX">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>🐮</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BULLX•BULLX•BULLX" class="text-purple-400">BULLX•BULLX•BULLX</a>
+                      <div class="text-gray-300">RUNE #6809</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">90 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0635</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      99 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0698</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0013 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$88.8388</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/REKT•MEMPOOL•ENJOYER">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/571d6c9bcb060743c8457146185a1f7477452e7318e5fe01ec361278e53d1db5i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/REKT•MEMPOOL•ENJOYER" class="text-purple-400">REKT•MEMPOOL•ENJOYER</a>
+                      <div class="text-gray-300">RUNE #230</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.001 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$70.4365</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  3
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/REST•IN•PEACE•DOGE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/56cc777c903610a0d45348238bbe2c67696daab14150b1a7939d9df6a2a6a295i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/REST•IN•PEACE•DOGE" class="text-purple-400">REST•IN•PEACE•DOGE</a>
+                      <div class="text-gray-300">RUNE #70774</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.2913 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0002</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.29 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0002</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0007 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$51.3502</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/META•RUNES•META">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>ᛗ</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/META•RUNES•META" class="text-purple-400">META•RUNES•META</a>
+                      <div class="text-gray-300">RUNE #11567</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">2.99 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0021</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      4 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0028</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0007 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$49.5058</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/MAGA•THE•DONALD•TRUMP">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/ed79f15509428cbc89dd8b196bbf65e3b696b98b5870885430e5479959816b08i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/MAGA•THE•DONALD•TRUMP" class="text-purple-400">MAGA•THE•DONALD•TRUMP</a>
+                      <div class="text-gray-300">RUNE #71571</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">3,938.2 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.7767</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      3,829 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$2.6997</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0006 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$43.2786</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  4
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/SATS•IN•THE•CATS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/65fd9bc3ad99ecbda370b7dae1f544aed1b88ed652d3560b605333379da430dci0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/SATS•IN•THE•CATS" class="text-purple-400">SATS•IN•THE•CATS</a>
+                      <div class="text-gray-300">RUNE #71933</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.8578 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0006</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.8 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0006</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0006 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$42.3366</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BITCOIN•ROBOTS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/46ca1585111bba23b310b10f11295799247a2aa9122214f8635676a6fc3f3388i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BITCOIN•ROBOTS" class="text-purple-400">BITCOIN•ROBOTS</a>
+                      <div class="text-gray-300">RUNE #258</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$38.0738</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/BOATY•MCBOATFACE">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/cd0028186cfa493a2afed146210d5f5cb7994f16d7892926a350a15ec040a429i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/BOATY•MCBOATFACE" class="text-purple-400">BOATY•MCBOATFACE</a>
+                      <div class="text-gray-300">RUNE #1811</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$37.2982</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/UNCOMMON•GOODS">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>▣</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/UNCOMMON•GOODS" class="text-purple-400">UNCOMMON•GOODS</a>
+                      <div class="text-gray-300">RUNE #0</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">1,800 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1.2691</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      2,350 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$1.6569</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$36.3675</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  6
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/DOPE•GRANDMA•COIN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <span>👵</span>
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/DOPE•GRANDMA•COIN" class="text-purple-400">DOPE•GRANDMA•COIN</a>
+                      <div class="text-gray-300">RUNE #115</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">27 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.019</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      42 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0296</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$35.9797</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/CHONKY•RUNICORN">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/4a24eaf8e19592ba6a985877c058aa877df8bd0f4ae4ab5d4078515a78e12592i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/CHONKY•RUNICORN" class="text-purple-400">CHONKY•RUNICORN</a>
+                      <div class="text-gray-300">RUNE #72349</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.5471 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0004</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.538 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0004</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$34.1056</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  2
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/RUNE•THE•PARTY•DOG">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/e471a44799450f688d678080f8f6552e02cab46bb19f21bb04ba9966d93cc26di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/RUNE•THE•PARTY•DOG" class="text-purple-400">RUNE•THE•PARTY•DOG</a>
+                      <div class="text-gray-300">RUNE #72752</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.0009 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0018 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0005 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$32.9444</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/NON•PLAYABLE•CHARACTER">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/3715b3ff54682b74ac4c1e912f149fa979cf5d2ea977e66b6f85e4e378083a2di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/NON•PLAYABLE•CHARACTER" class="text-purple-400">NON•PLAYABLE•CHARACTER</a>
+                      <div class="text-gray-300">RUNE #8888</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">0.0065 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0059 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0003 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$18.3311</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/CHEEZBURGER•ON•SATS•HAPPY•CAT">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/84db6836f93851d0740b4e20e3a79136a056cf550314a5c9d5151fa2dd41b57di0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/CHEEZBURGER•ON•SATS•HAPPY•CAT" class="text-purple-400">CHEEZBURGER•ON•SATS•HAPPY•CAT</a>
+                      <div class="text-gray-300">RUNE #71901</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">10.073 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0071</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      7.4 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0052</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0002 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$14.2043</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/HOPE•YOU•GET•RICH">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://renderer.magiceden.dev/v2/render?id=d66de939cb3ddb4d94f0949612e06e7a84d4d0be381d0220e2903aad68135969i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/HOPE•YOU•GET•RICH" class="text-purple-400">HOPE•YOU•GET•RICH</a>
+                      <div class="text-gray-300">RUNE #431</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.14 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.147 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0001 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$9.8703</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/WE•LIKE•THE•STOCK">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/8d76d22902c5906187a0a7c812298c296f13c3896b1c44cae3cfffde7374f32ei0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/WE•LIKE•THE•STOCK" class="text-purple-400">WE•LIKE•THE•STOCK</a>
+                      <div class="text-gray-300">RUNE #68812</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s text-red-500">0.2109 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0001</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.923 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.0007</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0.0001 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$7.4357</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          
+
+
+
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="/runes/OKX•METAVERSE•RUNES">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="https://ord-mirror.magiceden.dev/content/5afdeb4cf8b1899fb43651180ab5ea7f659c07292c9891d68b43b657ad58ddd1i0" class="rounded-md">
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="/runes/OKX•METAVERSE•RUNES" class="text-purple-400">OKX•METAVERSE•RUNES</a>
+                      <div class="text-gray-300">RUNE #67689</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    <span class="relative inline-block text-s">465 SATS</span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.3279</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      252.49 SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$0.178</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      0 BTC
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$3.2786</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  1
+                </div>
+              </td>
+            </tr>
+          </tbody>
+          </table>
+
+          <script type="text/template" data-runes-target="template">
+            <tr class="bg-gray-600 hover:bg-gray-500 tr-hover cursor-pointer" data-action="click->runes#navigate" data-runes-url-param="$runeURL$">
+              <td class="px-2 w-8 overflow-hidden overflow-ellipsis">
+                <div class="flex items-center h-16 px-0 max-w-xs truncate">
+                  <div class="flex items-center whitespace-nowrap overflow-hidden overflow-ellipsis">
+                    <div class="flex items-center justify-center w-8 h-10 mr-3">
+                      <img src="$imageURI$" class="rounded-md" />
+                    </div>
+                    <div class="text-sm text-gray-100 font-medium">
+                      <a href="$runeURL$" class="text-purple-400">$name$</a>
+                      <div class="text-gray-300">RUNE #$runeNumber$</div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-semibold">
+                    $mempoolPrice$
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$mempoolPriceUSD$</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      $price$ SATS
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$priceUSD$</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-0 text-gray-200">
+                  <div class="px-2 text-s font-medium">
+                    <span class="relative inline-block pl-2 text-s font-semibold">
+                      $mempoolVolume$
+                    </span>
+                  </div>
+                  <div class="text-xs px-2 text-gray-300">$mempoolVolumeUSD$</div>
+                </div>
+              </td>
+              <td class="p-0">
+                <div class="flex flex-col justify-center items-end h-16 px-3 font-semibold text-gray-200">
+                  $txCount$
+                </div>
+              </td>
+            </tr>
+          </script>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+    </div>
+
+    <section class="relative" style="margin-top: 1em;">
+  <div class="pt-2 pb-3 px-8">
+    <div class="flex flex-col sm:flex-row flex-wrap items-end justify-center">
+      <div class="w-auto mb-6 sm:mb-0 sm:mr-4">
+        <div class="flex flex-wrap items-center p-8">
+          Powered by
+          <img class="rounded-full h-8 mr-2 ml-2" src="/assets/twoo-d232e1e26b57e4bf8f5d0f4be7ed4d110562c38c7fb8b8f01372406ec0cbbe0e.webp">
+          <a href="https://x.com/TheWizardsOfOrd" target="_blank" style="color: #D24317" class="hover:underline">
+            The Wizards of Ord
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+  
+
+</body></html>

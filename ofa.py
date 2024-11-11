@@ -83,7 +83,7 @@ def get_buy_time_and_price(coin_data, coin, price):
     elif rand < 0.9:
         return 'next week', price * (1 + random.uniform(-0.2, 0.2))
     else:
-        date = datetime.strptime(coin_data[coin]["ath_date"], '%Y-%m-%dT%H:%M:%S.%fZ')
+        date = datetime.strptime(coin_data[coin]["ath_date"], '%d-%m-%Y %H:%M')
         date = date.strftime('%B %d, %Y')  # Format the date as 'Month Day, Year'
         return f'on {date}', coin_data[coin]['ath']
 

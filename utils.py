@@ -17,6 +17,7 @@ def round_sig(num, sig_figs = 2):
         return round(num, -int(math.floor(math.log10(abs(num))) - (sig_figs - 1)))
     else:
         return 0  # Can't take the log of 0
+    
 def convert_to_float(value):
     multiplier = 1
     if 'K' in value:
@@ -84,12 +85,21 @@ def format_number(num, integer=False,bitcoin = False, vol = False):
             return f'{num:.2f}'
         elif num == 0:
             return 0
-        elif num < 0.01:
-            return f'{num:.2e}'
-        elif num > .01:
+        elif num >= .1:
             return f'{num:.2f}'
+        elif num >= .01:
+            return f'{num:.3f}'
+        elif num >= .001:
+            return f'{num:.3f}'
         else:
-            return round_sig(num, 2)
+            # Format the number in scientific notation
+            sci_num = f'{num:.1e}'
+            # Split the number into two parts: before and after the "e"
+            before_e, after_e = sci_num.split('e')
+            # Remove leading zeros from the part after the "e"
+            after_e = str(int(after_e))
+            # Return the number in the desired format
+            return f'{before_e}e{after_e}'
         
 def format_number_with_symbol(num, symbol,integer=False,bitcoin = False):
         formatted_number = str(format_number(num,integer,bitcoin=bitcoin))

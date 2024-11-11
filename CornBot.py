@@ -284,7 +284,7 @@ async def create_table_runes(runes,user_id):
             mints_owned = quantity_owned
 
         try:
-            mint_price = format_number_with_symbol( unformatted_price * sat_price * amount,'USD') if amount != 'N/A' and mints_owned != 0 else 'N/A'
+            mint_price = format_number_with_symbol( unformatted_price * sat_price * amount,'USD') if amount != 'N/A' else 'N/A'
             value = format_number_with_symbol(quantity_owned * unformatted_price * sat_price,'USD',True,bitcoin=True) if quantity_owned is not None and price != 'N/A' else 'N/A'
         except ValueError:
             value = 'N/A'
@@ -456,7 +456,7 @@ def add_rune_data(user_id, rune_data):
 
     # Add the rune data to the user's data
     user_data[user_id]['runes'][rune_data['ticker']] = {
-        'balance': rune_data['formattedBalance']
+        'balance': float(rune_data['formattedBalance'])
     }
 
     # Write the updated data back to the JSON file
@@ -499,7 +499,10 @@ async def ofa(ctx):
     user_id = str(ctx.author.id)
     #print_favorite_runes(user_id)
     leverage = get_leverage()
-    action = get_action(leverage)
+    if leverage:
+        action = get_action(leverage)
+    else:
+        action = 'BUY'
     
     if random.random() < 0.5:
         favorite_coins = load_favorites("coins")
@@ -808,17 +811,22 @@ async def manage_coins(ctx, user_id, coins, action):
         message = "No changes were made to your favorites."
     return message
 
-async def manage_coins_command(ctx, coins: str, user_id: str, action: str):
+async def manage_coins_command(ctx, coins: str, user_id: str, action: str, quantity: Optional[bool] = False):
     coins = [coin.strip() for coin in coins.split(',')]
     coins = [await check_coin(coin) if not is_rune(coin) else coin for coin in coins]
     if coins:  # Check if coins list is not empty
         message = await manage_coins(ctx, user_id, coins, action)
-        await ctx.edit(content=message)
+        if not quantity:
+            await ctx.edit(content=message)
 
 @bot.slash_command(name="add", description="Add coins to your favorites or a list by name or exact ID")
 async def add(ctx, coins: str, get_quant:bool = False, exact_id: bool = False):
     await ctx.defer(ephemeral=True)
+    global coin_data
+    global runes_data
     user_id = str(ctx.author.id)
+    coins = coins.split(",")
+    quant = False
     if get_quant:
         user_data = get_user_data(user_id)
         if user_data is None:
@@ -830,10 +838,22 @@ async def add(ctx, coins: str, get_quant:bool = False, exact_id: bool = False):
             else:
                 await ctx.edit(content="add your address using /runes first, coin not added")
                 return
-    global coin_data
-    global runes_data
+            for rune in coins:
+                rune = sanitize_rune(rune)           
+                rune_data = await get_my_runes(address,rune)
+                if rune_data == {}:
+                    await ctx.edit(content=f"{rune} not found.")
+                    continue
+                add_rune_data(user_id, rune_data)
+                balance = rune_data.get('formattedBalance', 0)
+
+                mint_quant = float(balance) / float(runes_data.get(rune, {}).get('mint_amount', 1))
+
+                await ctx.edit(content=f"updated {rune} quantity: {mint_quant} mints")
+                quant = True
+
     user_id = str(ctx.author.id)
-    coins = coins.split(",") 
+
     valid_coins = coins.copy()
     for coin in coins:
         if is_rune(coin):
@@ -847,9 +867,6 @@ async def add(ctx, coins: str, get_quant:bool = False, exact_id: bool = False):
                     continue
                 else:
                     add_rune_data(user_id, rune_data)
-                    if get_quant:
-                        rune_data = await get_my_runes(address,coin)
-                        add_rune_data(user_id, rune_data)
             valid_coins.remove(save)
             valid_coins.append(rune_name)
               
@@ -868,7 +885,7 @@ async def add(ctx, coins: str, get_quant:bool = False, exact_id: bool = False):
     else:
         if coins_str == "":
             return
-        await manage_coins_command(ctx, coins_str, user_id, 'add')  # Pass coins_str instead of coins
+        await manage_coins_command(ctx, coins_str, user_id, 'add', quantity = quant)  # Pass coins_str instead of coins
 
 @bot.slash_command(name="remove", description="Remove coins from your favorites or a list")
 async def remove(ctx, coins: str):
@@ -1177,7 +1194,6 @@ def filter_transactions(transactions, kind,rune):
 
 def snipe_filter(rune, transactions):
     global runes_data
-    global triggered_tx_ids
     if 'divisibility' in runes_data[rune]:
         divisibility = 10** int(runes_data[rune]['divisibility'])
     else:
@@ -1199,6 +1215,14 @@ def snipe_filter(rune, transactions):
         price = float(txn['listedPrice'])  # price in satoshis
         amount = float(txn['amount']) / divisibility
 
+        # Check if btcUsdPrice is not None
+        if txn['btcUsdPrice'] is None:
+            #print(f"btcUsdPrice is None for transaction: {txn}")
+            continue
+
+        # Convert btcUsdPrice to float
+        btc_usd_price = float(txn['btcUsdPrice']) / 1e8
+
         # Calculate the price per unit for the transaction
         price_per_unit = price / amount
         price_ratio = price_per_unit / current_price
@@ -1216,25 +1240,25 @@ def snipe_filter(rune, transactions):
     # Iterate over the transactions where the price per unit is below the current price
     for txn in below_current_price_transactions:
         price = float(txn['listedPrice'])  # price in satoshis
-        amount = float(txn['amount'])  / divisibility
+        amount = float(txn['amount']) / divisibility  # Recalculate amount for each transaction
+
+        # Convert btcUsdPrice to float
+        btc_usd_price = float(txn['btcUsdPrice']) / 1e8
 
         # Calculate the total value at the current price
         current_value = amount * current_price  # What it would be worth at the current price
         total_value_at_current_price = current_value - price  # The difference in satoshis
 
         # Check if the total value is more than $100
-        sat_usd_price = float(txn['btcUsdPrice']) / 1e8
-        total_value_at_current_price_usd = total_value_at_current_price * sat_usd_price
-        if total_value_at_current_price_usd > 200:
+        total_value_at_current_price_usd = total_value_at_current_price * btc_usd_price
+        if total_value_at_current_price_usd > 100:
             # If it is, add the total value to the transaction data
             txn['total_value'] = total_value_at_current_price_usd
 
             # Add the transaction to the list
             valuable_transactions.append(txn)
-            if txn['mempoolTxId'] in triggered_tx_ids:
-                continue
 
-            print(f"Snipe found for {rune} with total value of {format_number(total_value_at_current_price_usd)} at price of {format_number(txn['price_per_unit'] * sat_usd_price)}. Transaction ID: {txn['mempoolTxId']}")
+            print(f"Snipe found for {rune} with total value of {format_number(total_value_at_current_price_usd)} at price of {format_number(txn['price_per_unit'] * btc_usd_price)}. Transaction ID: {txn['mempoolTxId']}")
 
     return valuable_transactions
 
@@ -1290,7 +1314,7 @@ async def secondary_check_price_change(rune):
         c+=1
 
 # Save the transactions to the JSON file
-    with open('all_transactions.json', 'w') as f:
+    with open('your_file.json', 'w', encoding='utf-8') as f:
         json.dump(all_transactions, f)
 
         buys = filter_transactions(all_transactions.values(), 'buying_broadcasted',rune)
@@ -1350,6 +1374,12 @@ async def add_mint_data(rune):
             async with session.get(f'https://ordinals.com/rune/{rune}') as response:
                 soup = BeautifulSoup(await response.text(), 'html.parser')
                 dl_tag = soup.find('dl')
+                
+                if dl_tag is None:
+                    print(f"Error: 'dl' tag not found for rune {rune}")
+                    runes_data[rune]['mint_amount'] = 0  # Default value
+                    return
+                
                 runes_data[rune]['mint_amount'] = 0  # Default value
                 for dt, dd in zip(dl_tag.find_all('dt'), dl_tag.find_all('dd')):
                     key = dt.text.strip()
@@ -1377,12 +1407,22 @@ async def send_snipe_message(snipe):
     triggered_tx_ids[snipe['txId']] = datetime.now()
 
     channel = await bot.fetch_channel(int(channel_id))
-    await channel.send(
-        f"${format_number(snipe['total_value'])} <:snipe:919674042661892108>    Cost - ${format_number(snipe['total_price'])}.\n"
-        f"{runes_data[snipe['rune']]['symbol']}{format_number(snipe['number_of_mints'] or snipe['number_of_runes'])} {snipe['rune']} at {format_number(snipe['price_per_rune'])} sat -"
-        + (f" ${format_number(snipe['price per mint'])} per mint - BETA WARNING: DYOR, math may be wrong" if snipe['price per mint'] is not None else "BETA WARNING: DYOR, math may be wrong")
-        + f"\n{snipe['txId']}. or maybe {snipe['mempoolTxId']}."
-    )
+    sniper_role_id = "1249491464543666247" 
+
+    if snipe['total_value'] > 500:
+        await channel.send(
+            f"<@&{sniper_role_id}> ${format_number(snipe['total_value'])} <:snipe:919674042661892108>    Cost - ${format_number(snipe['total_price'])}.\n"
+            f"{runes_data[snipe['rune']]['symbol']}{format_number(snipe['number_of_mints'] or snipe['number_of_runes'])} {snipe['rune']} at {format_number(snipe['price_per_rune'])} sat -"
+            + (f" ${format_number(snipe['price per mint'])} per mint - BETA WARNING: DYOR, math may be wrong" if snipe['price per mint'] is not None else "BETA WARNING: DYOR, math may be wrong")
+            + f"\n{snipe['txId']}. or maybe {snipe['mempoolTxId']}."
+        )
+    else:
+        await channel.send(
+            f"${format_number(snipe['total_value'])} <:snipe:919674042661892108>    Cost - ${format_number(snipe['total_price'])}.\n"
+            f"{runes_data[snipe['rune']]['symbol']}{format_number(snipe['number_of_mints'] or snipe['number_of_runes'])} {snipe['rune']} at {format_number(snipe['price_per_rune'])} sat -"
+            + (f" ${format_number(snipe['price per mint'])} per mint - BETA WARNING: DYOR, math may be wrong" if snipe['price per mint'] is not None else "BETA WARNING: DYOR, math may be wrong")
+            + f"\n{snipe['txId']}. or maybe {snipe['mempoolTxId']}."
+        )
 
 async def cleanup_old_tx():
     global triggered_tx_ids
@@ -1408,6 +1448,10 @@ async def check_price_change():
     global last_alert_times
 
     for rune, data in runes_data.items():
+        if 'price_list' not in data:
+            print(f"Error: 'price_list' key not found for rune {rune}")
+            continue
+
         current_price = data['price_list'][-1]  # Fetch the most recent price
         old_price_1m = data['price_list'][-2] if len(data['price_list']) >= 2 else None  # Get the price from 1 minute ago
         old_price_5m = data['price_list'][-6] if len(data['price_list']) >= 6 else None  # Get the price from 5 minutes ago
@@ -1420,7 +1464,7 @@ async def check_price_change():
             change_percentage_5m = price_change_5m / old_price_5m * 100
 
             last_alert_time = last_alert_times.get(rune)
-            if change_percentage_5m > 10 and (last_alert_time is None or datetime.now() - last_alert_time > timedelta(minutes=5)):
+            if change_percentage_5m > 25 and (last_alert_time is None or datetime.now() - last_alert_time > timedelta(minutes=6)):
                 await send_price_change_alert(rune, change_percentage_5m, current_price, '5m')
                 last_alert_times[rune] = datetime.now()
                 alert_5m = True
@@ -1430,7 +1474,7 @@ async def check_price_change():
             price_change_1m = current_price - old_price_1m
             change_percentage_1m = price_change_1m / old_price_1m * 100
 
-            if change_percentage_1m > 5:
+            if change_percentage_1m > 20:
                 await send_price_change_alert(rune, change_percentage_1m, current_price, '1m')
 
 async def send_price_change_alert(rune, change_percentage, current_price, time_period):
