@@ -66,18 +66,38 @@ def load_most_recent_json():
     # Get a list of all JSON files in the 'historical' folder
     files = glob.glob('historical/*.json')
 
+    if not files:
+        print("Error: No JSON files found in the 'historical' folder")
+        return None
+
     # Sort the files by modification time
     files.sort(key=os.path.getmtime)
 
-    # Get the most recent file
-    most_recent_file = files[-1]
+    # Try loading the most recent file
+    try:
+        most_recent_file = files[-1]
+        with open(most_recent_file, 'r') as f:
+            data = json.load(f)
+        coin_data = data.get('coin_data', {})
+        runes_data = data.get('runes_data', {})
+        return data
+    except (json.JSONDecodeError, Exception) as e:
+        print(f"Error loading most recent JSON file '{most_recent_file}': {e}")
 
-    # Load the data from the most recent file
-    with open(most_recent_file, 'r') as f:
-        data = json.load(f)
-    coin_data = data.get('coin_data', {})
-    runes_data = data.get('runes_data', {})
-    return data
+        # Try loading the second most recent file if available
+        if len(files) > 1:
+            try:
+                second_most_recent_file = files[-2]
+                with open(second_most_recent_file, 'r') as f:
+                    data = json.load(f)
+                coin_data = data.get('coin_data', {})
+                runes_data = data.get('runes_data', {})
+                return data
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"Error loading second most recent JSON file '{second_most_recent_file}': {e}")
+                return None
+        else:
+            return None
 
 load_most_recent_json()
 
