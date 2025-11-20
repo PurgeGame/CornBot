@@ -67,6 +67,8 @@ def format_number(num, integer=False,bitcoin = False, vol = False):
             return f'{num/1e9:,.0f} B'
         elif num >= 1e6:
             return f'{num/1e6:,.0f} M'
+        elif num >= 1e5 and bitcoin == True:
+            return f'{num/1e6:,.4f} M'
         elif num >= 1e4 and bitcoin == False:
             return f'{num/1000:,.0f}k'
         elif num >= 1e3 and vol == False:
@@ -100,6 +102,27 @@ def format_number(num, integer=False,bitcoin = False, vol = False):
             after_e = str(int(after_e))
             # Return the number in the desired format
             return f'{before_e}e{after_e}'
+
+def format_price_display(value, decimals=2, million_decimals=4, million_threshold=100_000):
+    """
+    Format a price with comma separators while only switching to million format
+    at or above the provided threshold.
+    """
+    try:
+        num = float(str(value).replace(',', '').strip())
+    except (ValueError, TypeError):
+        return '0'
+
+    abs_num = abs(num)
+    if abs_num < million_threshold:
+        formatted = f'{num:,.{decimals}f}'
+        if decimals:
+            formatted = formatted.rstrip('0').rstrip('.')
+        return formatted
+
+    million_value = num / 1_000_000
+    million_formatted = f'{million_value:,.{million_decimals}f}'.rstrip('0').rstrip('.')
+    return f'{million_formatted}M'
         
 def format_number_with_symbol(num, symbol,integer=False,bitcoin = False):
         formatted_number = str(format_number(num,integer,bitcoin=bitcoin))

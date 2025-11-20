@@ -4,6 +4,7 @@ import aiohttp
 import os
 import random
 from dotenv import load_dotenv
+from utils import format_price_display
 
 load_dotenv()
 
@@ -54,10 +55,11 @@ async def update_activity():
     price_eth, change_eth, ratio = await get_eth_price()
     if price_eth == .999:
         return
+    price_display = format_price_display(price_eth, decimals=0)
     if change_eth >= 0:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬈{abs(change_eth):.1f}% 🍹{f'{ratio:.4f}'[1:]}"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_display} ⬈{abs(change_eth):.1f}% 🍹{f'{ratio:.4f}'[1:]}"))
     else:
-        await bot.change_presence(activity=discord.Game(name=f"${price_eth} ⬊{abs(change_eth):.1f}% 🍹{f'{ratio:.4f}'[1:]}"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_display} ⬊{abs(change_eth):.1f}% 🍹{f'{ratio:.4f}'[1:]}"))
 
 token = os.environ.get("SOL_BOT_SECRET")
 bot.run(token)

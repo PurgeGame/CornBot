@@ -1,32 +1,56 @@
-import discord
+import os, json, discord
 from discord.ext import tasks
-import json
-import os
 from dotenv import load_dotenv
+from utils import format_price_display
 
 load_dotenv()
 
 intents = discord.Intents.default()
+intents.presences = True
+intents.guilds = True
 bot = discord.Bot(intents=intents)
+
+SEP1 = "\u2003"  # EM space
+SEP2 = "\u2002"  # EN space
+
+def to_float(x, default=0.0):
+    try:
+        return float(str(x).replace(",", "").strip())
+    except Exception:
+        return float(default)
+
+def move_icon(pct: float) -> str:
+    x = abs(pct)
+    if x < 3:   return "⬈" if pct >= 0 else "⬊"
+    if x < 6:   return "⏫" if pct >= 0 else "🔻"
+    if x < 10:  return "🚀" if pct >= 0 else "💀"
+    return "🌕" if pct >= 0 else "🪦"
 
 @bot.event
 async def on_ready():
-    print(f'We have logged in as {bot.user}')
+    print(f"Logged in as {bot.user}")
     update_activity.start()
 
 @tasks.loop(minutes=1)
 async def update_activity():
     try:
-        with open("crypto_data.json", "r") as f:
+        with open("crypto_data.json", "r", encoding="utf-8") as f:
             data = json.load(f)["btc"]
-        price, change, gold_ratio = data["price"], data["change"], data["gold_ratio"]
-        if change >= 0:
-            status = f"${price} ⬈{abs(change):.1f}% 🟡{gold_ratio:.2f}"
-        else:
-            status = f"${price} ⬊{abs(change):.1f}% 🟡{gold_ratio:.2f}"
+
+        price_str = data.get("price", "0")
+        change = to_float(data.get("change", 0))
+        gold_ratio = to_float(data.get("gold_ratio", 0))
+
+        price_m = format_price_display(price_str)
+        icon = move_icon(change)
+
+        status = f"${price_m}{SEP1}{icon}{abs(change):.2f}%{SEP1}🟡{gold_ratio:.3f}"
         await bot.change_presence(activity=discord.Game(name=status))
-    except:
+    except Exception as e:
+        print(f"update_activity error: {e}")
         await bot.change_presence(activity=discord.Game(name="BTC: Error"))
 
 token = os.environ.get("DISCORD_BOT_SECRET")
+if not token:
+    raise RuntimeError("DISCORD_BOT_SECRET not set")
 bot.run(token)

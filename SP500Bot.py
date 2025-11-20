@@ -1,6 +1,7 @@
 import os, json, discord
 from discord.ext import tasks
 from dotenv import load_dotenv
+from utils import format_price_display
 
 load_dotenv()
 
@@ -27,29 +28,35 @@ def move_icon(pct: float) -> str:
 
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
+    print(f"We have logged in as {bot.user}")
     update_activity.start()
 
 @tasks.loop(minutes=1)
 async def update_activity():
     try:
         with open("crypto_data.json", "r", encoding="utf-8") as f:
-            sol = json.load(f)["sol"]
+            data = json.load(f)
 
-        price = to_float(sol.get("price", 0))
-        change = to_float(sol.get("change", 0))
-        btc_ratio = to_float(sol.get("btc_ratio", 0))
+        sp = data["sp500"]
+        btc = data["btc"]
 
-        icon = move_icon(change)
-        ratio_trim = f"{btc_ratio:.6f}"[1:]
+        price_str = format_price_display(sp.get("price", 0), decimals=0)
+        change_val = to_float(sp.get("change", 0))
+        btc_price = to_float(btc.get("price", 0))
 
-        status = f"${price:.1f}{SEP1}{icon}{abs(change):.2f}%{SEP1}🌽{ratio_trim}"
+        sp_price_num = to_float(price_str)
+        corn_ratio = (sp_price_num / btc_price) if btc_price else 0.0
+
+        icon = move_icon(change_val)
+        ratio_trim = f"{corn_ratio:.5f}"[1:]
+
+        status = f"${price_str}{SEP1}{icon}{abs(change_val):.2f}%{SEP1}🌽{ratio_trim}"
         await bot.change_presence(activity=discord.Game(name=status))
     except Exception as e:
-        print(f"update_activity error: {e}")
-        await bot.change_presence(activity=discord.Game(name="SOL: Error"))
+        print(f"Error updating activity: {e}")
+        await bot.change_presence(activity=discord.Game(name="S&P 500: Error"))
 
-token = os.environ.get("SOL_BOT_SECRET")
+token = os.environ.get("SP500_BOT_SECRET")
 if not token:
-    raise RuntimeError("SOL_BOT_SECRET not set")
+    raise RuntimeError("SP500_BOT_SECRET not set")
 bot.run(token)

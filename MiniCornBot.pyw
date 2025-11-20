@@ -4,7 +4,7 @@ import aiohttp
 import os
 import random
 from dotenv import load_dotenv
-from utils import format_number
+from utils import format_number, format_price_display
 
 load_dotenv()
 
@@ -58,10 +58,11 @@ async def update_activity():
     price_btc, change_btc, btc_dominance = await get_btc_price()
     if price_btc == .999:
         return
+    price_display = format_price_display(price_btc, decimals=0)
     if change_btc >= 0:
-        await bot.change_presence(activity=discord.Game(name=f"${price_btc} ⬈{abs(change_btc):.1f}% {btc_dominance}%"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_display} ⬈{abs(change_btc):.1f}% {btc_dominance}%"))
     else:
-        await bot.change_presence(activity=discord.Game(name=f"${price_btc} ⬊{abs(change_btc):.1f}% {btc_dominance}%"))
+        await bot.change_presence(activity=discord.Game(name=f"${price_display} ⬊{abs(change_btc):.1f}% {btc_dominance}%"))
 
 token = os.environ.get("DISCORD_BOT_SECRET")
 bot.run(token)

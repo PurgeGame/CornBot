@@ -1,13 +1,26 @@
+# Secrets / environment
 .env
+
+# Virtual environments
+venv/
 myenv/
-*.json
-!rune_mint_data.json
-!coins.json
-!/historical/data_2024-04-26.json
-!favorite_coins_fallback.json
-!alerts_fallback.json
-!favorite_runes_fallback.json
+
+# Bytecode / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Editor and tooling metadata
+.vscode/
+.idea/
+
+# Logs / local outputs
+*.log
+output.html
+test.html
 test.py
-/__pycache__/
-__pycache__/ofa.cpython-312.pyc
-__pycache__/utils.cpython-312.pyc
+historical/
+
+# Local data (only keep the feed file needed by the New* bots and SP500 bot)
+*.json
+!crypto_data.json
